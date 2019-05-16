@@ -1,0 +1,11 @@
+*.zip
+node_modules/
+.vscode/
+*.pem
+*.crx
+.idea/
+.DS_Store
+package-lock.json
+build/
+*.zip
+videoUnblock/

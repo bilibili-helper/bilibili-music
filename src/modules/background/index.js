@@ -1,0 +1,41 @@
+/**
+ * Author: DrowsyFlesh
+ * Create: 2018/12/9
+ * Description:
+ */
+import {Feature} from 'Libs/feature';
+import {__, createTab, hasNewVersion, version, getURL} from 'Utils';
+
+export class Background extends Feature {
+    constructor() {
+        super({
+            name: 'background',
+            kind: 'other',
+            permission: ['notifications'],
+            settings: {
+                on: true,
+                hide: true,
+                toggle: false,
+            },
+        });
+    }
+
+    addListener = () => {
+        chrome.runtime.onInstalled.addListener(function(details) { // 安装完成后事件
+            const {reason, previousVersion} = details;
+            if (reason === 'install') { // 安装成功后默认打开设置页面
+                createTab(chrome.extension.getURL('config.html?mod=install'));
+            } else if (reason === 'update' && !hasNewVersion(previousVersion)) {
+                chrome.notifications.create(`${process.env.PREFIX}-update`, {
+                    type: 'basic',
+                    iconUrl: getURL('/static/images/logo.png'),
+                    title: __('extensionNotificationTitle'),
+                    message: __('extensionNotificationExtensionUpdate').replace('%v', version),
+                });
+            }
+        });
+        if (typeof (chrome.runtime.setUninstallURL) === 'function') { // 卸载成功后自动跳到助手官网页面
+            //chrome.runtime.setUninstallURL('https://extlabs.io/analytics/uninstall/?uid=178&pid=264&finish_url=https%3A%2F%2Fbilihelper.guguke.net%2F%3Funinstall%26version%3D' + version);
+        }
+    };
+}

@@ -1,0 +1,25 @@
+{
+    "presets": [
+        "react",
+        [
+            "env",
+            {
+                "modules": false
+            }
+        ]
+    ],
+    "plugins": [
+        "transform-decorators-legacy",
+        "transform-object-rest-spread",
+        "transform-object-assign",
+        "transform-decorators",
+        "syntax-dynamic-import",
+        "transform-class-properties",
+        "transform-function-bind",
+        "lodash",
+        "transform-runtime",
+        ["babel-plugin-transform-builtin-classes", {
+            "globals": ["Array", "Error", "HTMLElement", "DataView"]
+        }]
+    ]
+}

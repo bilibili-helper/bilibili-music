@@ -1,0 +1,30 @@
+{
+    "status_chrome_version": {
+        "message": "chrome版本号校验",
+        "description": "chrome版本号校验"
+    },
+    "status_chrome_version_bigger_error": {
+        "message": "浏览器内核版本过低，需要大于$version$",
+        "description": "浏览器内核版本过低",
+        "placeholders": {
+            "version": {
+                "content": "$1",
+                "example": ""
+            }
+        }
+    },
+    "status_chrome_version_small_error": {
+        "message": "浏览器内核版本过高，需要小于$version$",
+        "description": "浏览器内核版本过高",
+        "placeholders": {
+            "version": {
+                "content": "$1",
+                "example": ""
+            }
+        }
+    },
+    "status_chrome_version_none_webkit": {
+        "message": "浏览器内核版本错误, 请使用以chrome内核的浏览器",
+        "description": "浏览器内核版本错误"
+    }
+}
