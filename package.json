@@ -10,10 +10,6 @@
     "build": "webpack --config=webpack.config.production.js --production --progress",
     "build:test": "webpack --config=webpack.config.production.js --env.DEBUG=true --production --progress"
   },
-  "repository": {
-    "type": "git",
-    "url": "git@code.aliyun.com:drowsyFlesh/keyManager.git"
-  },
   "author": "drowsyflesh",
   "dependencies": {
     "color": "^3.0.0",
