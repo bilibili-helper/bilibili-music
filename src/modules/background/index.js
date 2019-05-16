@@ -1,3 +1,4 @@
+/* global process */
 /**
  * Author: DrowsyFlesh
  * Create: 2018/12/9
