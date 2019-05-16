@@ -1,7 +1,7 @@
 {
     "name": "chromeExtensionPlatform",
     "version": "1.0.0",
-    "private": false,
+    "private": true,
     "description": "",
     "main": "index.js",
     "scripts": {
@@ -12,10 +12,9 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/jjj201200/chromeExtensionPlatform.git"
+        "url": "https://code.aliyun.com/drowsyFlesh/keyManager.git"
     },
     "author": "drowsyflesh",
-    "license": "MIT",
     "dependencies": {
         "color": "^3.0.0",
         "ffmpeg.js": "^3.1.9001",
