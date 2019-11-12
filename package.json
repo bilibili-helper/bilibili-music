@@ -1,18 +1,17 @@
 {
-    "name": "chromeExtensionPlatform",
+    "name": "bilibili-music",
     "version": "1.0.0",
     "private": true,
     "description": "",
     "main": "index.js",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
         "watch": "webpack --config=webpack.config.development.js --watch --progress",
         "build": "webpack --config=webpack.config.production.js --production --progress",
         "build:test": "webpack --config=webpack.config.production.js --env.DEBUG=true --production --progress"
     },
     "repository": {
         "type": "git",
-        "url": "https://code.aliyun.com/drowsyFlesh/keyManager.git"
+        "url": "git@github.com:jjj201200/bilibili-music.git"
     },
     "author": "drowsyflesh",
     "dependencies": {

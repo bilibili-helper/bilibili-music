@@ -1,4 +1,4 @@
 module.exports = {
-    PROJECT_NAME: 'project_name',
-    PREFIX: '',
+    PROJECT_NAME: 'bilibili-music',
+    PREFIX: 'BiliBILIMUSIC',
 };
