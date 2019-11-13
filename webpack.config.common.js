@@ -10,7 +10,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MergeJsonWebpackPlugin = require('merge-jsons-webpack-plugin');
-const WriteJsonPlugin = require('write-json-webpack-plugin');
+const WriteJsonPlugin = require('./write-json-webpack-plugin');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
 const srcPath = path.resolve('src');
@@ -169,6 +169,7 @@ module.exports = {
             object: manifestJSON,
             path: '../src/',
             filename: 'manifest.json',
+            pretty: true,
         }),
         new WriteJsonPlugin({
             object: manifestJSON,

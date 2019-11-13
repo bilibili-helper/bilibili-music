@@ -5,3 +5,4 @@
 
 // 导出常量
 export * from './functions';
+export * from './https';

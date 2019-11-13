@@ -9,11 +9,15 @@ import styled, {createGlobalStyle} from 'styled-components';
 import {UI} from 'Libs/UI';
 
 const UIBuilder = () => {
-    const Main = styled.div.attrs({className: 'popup-main'})`
+    const Main = styled.div.attrs({id: 'popup'})`
+      position: relative;
       display: flex;
       flex-direction: row-reverse;
+      margin: auto;
+      width: 320px;
+      height: 500px;
       background-color: rgb(250,250,250);
-      max-height: 290px;
+      overflow: hidden;
     `;
 
     const GlobalStyle = createGlobalStyle`
@@ -41,7 +45,7 @@ export class PopupAnchorUI extends UI {
                     <GlobalStyle/>
                 </Main>,
                 document.getElementById('root'),
-                () => resolve(document.querySelector('.popup-main')),
+                () => resolve(document.querySelector('#popup')),
             );
         });
     };
