@@ -109,7 +109,7 @@ const SongList = styled.div`
       justify-content: flex-start;
       align-items: center;
       padding: 4px 30px 4px 8px;
-      border-radius: 4px;
+      //border-radius: 4px;
       background-color: #fff;
       white-space: nowrap;
       list-style: none;
@@ -117,11 +117,11 @@ const SongList = styled.div`
       word-break: keep-all;
       cursor: pointer;
       overflow: hidden;
-      transition: background-color 300ms;
+      //transition: background-color 300ms;
       
       &:hover {
         background-color: whitesmoke;
-        .play-btn {
+        .action-btn {
           opacity: 1;
         }
       }
@@ -168,11 +168,7 @@ const CloseBtn = styled(Icon)`
   cursor: pointer;
 `;
 
-const PlayBtn = styled(Icon).attrs({
-    className: 'play-btn'
-})`
-  margin-right: -24px;
-  margin-left: auto;
+const ActionBtn = styled(Icon)`
   padding: 6px;
   border-radius: 4px;
   color: #999;
@@ -190,11 +186,25 @@ const PlayBtn = styled(Icon).attrs({
   }
 `;
 
-export const SongListSection = function({data}) {
+const PlayBtn = styled(ActionBtn).attrs({
+    className: 'action-btn play-btn'
+})`
+  margin-right: -24px;
+`;
 
+const AddBtn = styled(ActionBtn).attrs({
+    className: 'action-btn add-btn'
+})`
+  margin-left: auto;
+  margin-right: 6px;
+`;
+
+export const SongListSection = function({data}) {
     const [showSongList, setShow] = useState(false);
     const [loading, setLoading] = useState(false);
     const [songList, setSongList] = useState({});
+
+    // 歌单被点击
     const handleOnClickSongMenu = useCallback((item) => {
         setLoading(true);
         chrome.runtime.sendMessage({command: 'getMenuSong', sid: item.menuId}, (res) => {
@@ -209,13 +219,9 @@ export const SongListSection = function({data}) {
     }, [showSongList]);
 
     const handleOnClickPlaySong = useCallback((song) => {
-        chrome.runtime.sendMessage({command: 'playSong', song}, (res) => {
-
-        });
-        console.warn(song);
+        chrome.runtime.sendMessage({command: 'setSong', from: 'songMenu', song});
     },[songList]);
 
-    console.warn(songList);
     return (
         <React.Fragment>
             <Loading className={loading ? 'show' : ''}/>
@@ -235,6 +241,7 @@ export const SongListSection = function({data}) {
                                 <span className="index">{index + 1}. </span>
                                 <span className="title">{song.title}</span>
                                 {/*<span className="author">{song.author}</span>*/}
+                                <AddBtn icon="add" size={12}/>
                                 <PlayBtn icon="play" size={12} onClick={() => handleOnClickPlaySong(song)}/>
                             </li>
                         );

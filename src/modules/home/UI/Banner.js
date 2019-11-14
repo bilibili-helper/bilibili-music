@@ -14,20 +14,41 @@ const Wrapper = styled.div.attrs({
   display: flex;
   flex-wrap: nowrap;
   margin: 16px;
-  overflow: hidden;
+  overflow: auto;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }  
   
   .banner-item {
     flex-shrink: 0;
     width: 100%;
     cursor: pointer;
     
+    &:first-of-type img {
+        border-radius: 4px 0 0 4px;
+      }
+      
+      &:last-of-type img {
+        border-radius: 0 4px 4px 0;
+      }
+    
     img {
       display: block;
       width: 100%;
-      border-radius: 4px;
     }
   }
 `;
+
+const dealWithCoverSchema = (schema) => {
+    const am = /bilibili:\/\/music\/menu\/detail\/(\d+)/.exec(schema);
+    if (am) return `https://www.bilibili.com/audio/am${am[1]}?type=2`;
+
+    const au = /bilibili:\/\/music\/detail\/(\d+)/.exec(schema);
+    if (au) return `https://www.bilibili.com/audio/au${au[1]}`;
+
+    return schema;
+};
 
 export const Banner = function({data}) {
     return (
@@ -35,9 +56,9 @@ export const Banner = function({data}) {
             {data.map((item) => {
                 return (
                     <div className="banner-item" key={item.bannerId}>
-                        <img src={item.bannerImgUrl}/>
+                        <a href={dealWithCoverSchema(item.schema)} target="_blank" rel="noopener noreferrer"><img src={item.bannerImgUrl}/></a>
                     </div>
-                )
+                );
             })}
         </Wrapper>
     );
@@ -45,4 +66,4 @@ export const Banner = function({data}) {
 
 Banner.propTypes = {
     data: PropTypes.array,
-}
+};

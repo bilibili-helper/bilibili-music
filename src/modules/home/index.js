@@ -21,11 +21,4 @@ export class Home extends Feature {
             },
         });
     }
-    //
-    //addListener = () => {
-    //
-    //};
-    //
-    //launch = () => {
-    //}
 }

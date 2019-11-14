@@ -29,7 +29,7 @@ export const Home = function() {
     useEffect(() => {
         chrome.runtime.sendMessage({command: 'getData'}, (res) => {
             setData(res);
-            console.warn(res);
+            console.info(res);
         });
     }, []);
     const {banner = [], recommendList = {}} = data;

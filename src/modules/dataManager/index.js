@@ -55,7 +55,7 @@ export class DataManager extends Feature {
                 userRank,
                 recommendList,
             };
-            console.warn(this.tempData);
+            console.info(this.tempData);
         });
     };
 
