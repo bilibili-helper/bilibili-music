@@ -79,7 +79,8 @@ const SongList = styled.div`
     align-items: center;
     padding: 0px 0px 8px 8px;
     border-radius: 0 0 8px 8px;
-    background-color: #eee;
+    background-color: whitesmoke;
+    z-index: 1;
     
     .menu-info {
     
@@ -99,20 +100,16 @@ const SongList = styled.div`
   }
   
   ol {
-    //position: absolute;
-    //top: 32px;
-    //bottom: 40px;
-    //right: 0;
-    //left: 0;
     margin: 0;
-    padding: 0 0 50px 0;
+    padding: 10px 0 50px 0;
     overflow: auto;
     
     li {
       display: flex;
       justify-content: flex-start;
       align-items: center;
-      padding: 8px;
+      padding: 4px 30px 4px 8px;
+      border-radius: 4px;
       background-color: #fff;
       white-space: nowrap;
       list-style: none;
@@ -120,9 +117,17 @@ const SongList = styled.div`
       word-break: keep-all;
       cursor: pointer;
       overflow: hidden;
+      transition: background-color 300ms;
       
       &:hover {
-        background-color: #eee;
+        background-color: whitesmoke;
+        .play-btn {
+          opacity: 1;
+        }
+      }
+      
+      &:active {
+        background-color: #ececec;
       }
       
       span {
@@ -132,7 +137,6 @@ const SongList = styled.div`
       .index {
         display: inline-block;
         margin-right: 4px;
-        //min-width: 20px;
       }
       
       .title {
@@ -151,11 +155,39 @@ const SongList = styled.div`
   }
 `;
 
+const Loading = styled.div`
+  .show {
+    
+  }
+`;
+
 const CloseBtn = styled(Icon)`
   margin: 4px 4px auto auto;
   padding: 4px;
   color: #999;
   cursor: pointer;
+`;
+
+const PlayBtn = styled(Icon).attrs({
+    className: 'play-btn'
+})`
+  margin-right: -24px;
+  margin-left: auto;
+  padding: 6px;
+  border-radius: 4px;
+  color: #999;
+  opacity: 0;
+  cursor: pointer;
+  background-color: whitesmoke;
+  transition: background-color 300ms;
+  
+  &:hover {
+    background-color: #fff;
+  }
+  
+  &:active {
+    background-color: #ececec;
+  }
 `;
 
 export const SongListSection = function({data}) {
@@ -176,15 +208,23 @@ export const SongListSection = function({data}) {
         setShow(false);
     }, [showSongList]);
 
+    const handleOnClickPlaySong = useCallback((song) => {
+        chrome.runtime.sendMessage({command: 'playSong', song}, (res) => {
+
+        });
+        console.warn(song);
+    },[songList]);
+
     console.warn(songList);
     return (
         <React.Fragment>
+            <Loading className={loading ? 'show' : ''}/>
             <SongList className={showSongList ? 'show' : ''}>
                 <header>
                     <div className="menu-info">
                         <img className="cover" src={songList.cover}/>
                         <div className="title"><span>歌单：</span>{songList.title}</div>
-                        <div className="playCOunt"><span>播放数：</span>{songList.statistic && songList.statistic.play}</div>
+                        <div className="playCount"><span>播放数：</span>{songList.statistic && songList.statistic.play}</div>
                     </div>
                     <CloseBtn icon="close" onClick={handleOnClickClose}/>
                 </header>
@@ -195,6 +235,7 @@ export const SongListSection = function({data}) {
                                 <span className="index">{index + 1}. </span>
                                 <span className="title">{song.title}</span>
                                 {/*<span className="author">{song.author}</span>*/}
+                                <PlayBtn icon="play" size={12} onClick={() => handleOnClickPlaySong(song)}/>
                             </li>
                         );
                     })}

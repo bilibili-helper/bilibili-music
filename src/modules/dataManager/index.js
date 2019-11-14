@@ -34,8 +34,6 @@ export class DataManager extends Feature {
                 this.getSongMenu(message.sid, message.pn, message.ps)
                     .then(res => {
                         sendResponse(res);
-                        console.warn(res, sender);
-                        chrome.tabs.sendMessage(sender.tab.id, {command: 'menuSongData', data: res});
                     });
             }
             return true;
@@ -102,15 +100,6 @@ export class DataManager extends Feature {
      * @returns {Promise<unknown>}
      */
     initRecommendUser = (pn = 1, ps = 3) => fetchJSON(`${API.recommendUser}?pn=${pn}&ps=${ps}`);
-
-    /**
-     * 获取歌曲链接
-     * @param sid
-     * @param quality
-     * @param privilege
-     * @returns {Promise<unknown>}
-     */
-    getSongData = (sid, quality, privilege = 2) => fetchJSON(`${API.songData}?sid=${sid}&quality=${quality}&privilege=${privilege}`);
 
     /**
      * 获取歌单数据

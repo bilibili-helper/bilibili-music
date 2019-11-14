@@ -4,7 +4,7 @@
  * Description:
  */
 import {Icon} from 'Components/Icon';
-import React from 'react';
+import React, {useState, useCallback} from 'react';
 import styled from 'styled-components';
 
 const Wrapper = styled.div.attrs({'id': 'player'})`
@@ -48,11 +48,23 @@ const PlayBtn = styled(PlayerBtn).attrs({
     className: 'play-btn',
 })`
   margin: 0 0 30px 0;
-  padding: 16px;
+  padding: 20px;
   text-indent: 1px;
-  border: 10px solid #eee;
+  //border: 10px solid #eee;
   border-radius: 50%;
   background-color: #fff;
+  box-shadow: 0px 2px 3px rgba(153, 153, 153, 0.4);
+`;
+
+const PauseBtn = styled(PlayerBtn).attrs({
+    className: 'pause-btn',
+})`
+  margin: 0 0 30px 0;
+  padding: 20px;
+  //border: 10px solid #eee;
+  border-radius: 50%;
+  background-color: #fff;
+  box-shadow: 0px 2px 3px rgba(153, 153, 153, 0.4);
 `;
 
 const PrevBtn = styled(PlayerBtn).attrs({
@@ -77,11 +89,18 @@ const ListBtn = styled(PlayerBtn).attrs({
 `;
 
 export const Player = function() {
+    const [playing, setPlaying] = useState(false);
+    const handleOnClickPlayBtn = useCallback(() => {
+        chrome.runtime.sendMessage({
+           command: playing ? 'pause' : 'play'
+        });
+        setPlaying(!playing);
+    }, [playing]);
     return (
         <Wrapper>
             <StarBtn icon="star"/>
             <PrevBtn icon="prev" size={14}/>
-            <PlayBtn icon="player"/>
+            <PauseBtn icon={playing ? 'pause' : 'play'} onClick={handleOnClickPlayBtn}/>
             <NextBtn icon="next" size={14}/>
             <ListBtn icon="list" size={20}/>
         </Wrapper>
