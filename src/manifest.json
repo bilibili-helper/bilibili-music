@@ -2,7 +2,7 @@
     "manifest_version": 2,
     "name": "__MSG_extensionName__",
     "version": "0.1.0",
-    "description": "__MSG_extensionName__",
+    "description": "__MSG_extensionDescription__",
     "default_locale": "zh_CN",
     "content_scripts": [],
     "icons": {
@@ -24,11 +24,7 @@
     },
     "permissions": [
         "cookies",
-        "notifications",
-        "webRequest",
-        "webRequestBlocking",
         "storage",
-        "unlimitedStorage",
         "*://*.bilibili.com/*",
         "*://*.hdslb.com/*"
     ],

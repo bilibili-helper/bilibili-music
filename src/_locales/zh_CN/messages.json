@@ -1,6 +1,10 @@
 {
-  "extensionName": {
-    "message": "bilibili music",
-    "description": "Extension: Name"
-  }
+    "extensionName": {
+        "message": "哔哩哔哩音乐",
+        "description": "Extension: Name"
+    },
+    "extensionDescription": {
+        "message": "一款播放哔哩哔哩弹幕网音乐的扩展程序",
+        "description": "Extension: Description"
+    }
 }
