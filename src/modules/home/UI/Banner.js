@@ -13,8 +13,19 @@ const Wrapper = styled.div.attrs({
   position: relative;
   display: flex;
   flex-wrap: nowrap;
-  margin: 16px;
+  margin: 8px;
+  padding: 8px;
+  border-radius: 8px;
   overflow: auto;
+  box-shadow: inset 0px 0px 0px #999;
+  transition: box-shadow 300ms;
+  
+  &:hover {
+    box-shadow: rgba(153, 153, 153, 0.5) 0px 0px 8px inset;
+    .banner-item {
+      box-shadow: rgba(191, 191, 191, 0.5) 0px 0px 0px;
+    }
+  }
 
   &::-webkit-scrollbar {
     display: none;
@@ -22,20 +33,27 @@ const Wrapper = styled.div.attrs({
   
   .banner-item {
     flex-shrink: 0;
+    margin-right: 8px;
     width: 100%;
     cursor: pointer;
+    border-radius: 8px;
+    transition: box-shadow 300ms;
+    box-shadow: rgba(191, 191, 191, 0.5) 0px 3px 6px;
     
-    &:first-of-type img {
-        border-radius: 4px 0 0 4px;
-      }
+    //&:first-of-type {
+    //  
+    //  border-radius: 4px 0 0 4px;
+    //}
       
-      &:last-of-type img {
-        border-radius: 0 4px 4px 0;
-      }
+    &:last-of-type {
+      margin-right: 0;
+      padding-right: 8px;
+    }
     
     img {
       display: block;
       width: 100%;
+      border-radius: 8px;
     }
   }
 `;

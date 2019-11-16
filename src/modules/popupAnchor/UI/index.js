@@ -16,11 +16,14 @@ const UIBuilder = () => {
       margin: auto;
       width: 320px;
       height: 500px;
-      background-color: rgb(250,250,250);
+      background-color: #fff;
       overflow: hidden;
     `;
 
     const GlobalStyle = createGlobalStyle`
+      html {
+        background-color: #111;
+      }
       body {
         margin: 0;
         padding: 0;
@@ -28,7 +31,7 @@ const UIBuilder = () => {
       }
     `;
     return {Main, GlobalStyle};
-}
+};
 
 export class PopupAnchorUI extends UI {
     constructor() {

@@ -19,6 +19,7 @@ const Wrapper = styled.div.attrs({id: 'home'})`
   
   &::-webkit-scrollbar {
     //color: black;
+    display: none;
   }
 `;
 
