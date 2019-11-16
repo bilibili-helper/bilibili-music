@@ -48,7 +48,7 @@ export class ChromeVersionStatus extends Status {
             } else {
                 [pass, msg] = [false, __('status_chrome_version_none_webkit')];
             }
-            this.updatePermission(pass, msg);
+            this.updatePermission('chromeVersion', pass, msg);
             resolve({pass, msg, type: operation});
         });
     }

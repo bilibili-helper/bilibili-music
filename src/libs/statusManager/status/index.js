@@ -8,3 +8,4 @@ export {ChromeVersionStatus} from './chromeVersion';
 export {NotificationsStatus} from './notifications';
 export {PipStatus} from './pip';
 export {DownloadsStatus} from './downloads';
+export {LoginStatus} from './login';

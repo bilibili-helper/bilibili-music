@@ -18,7 +18,7 @@ const Wrapper = styled.div.attrs({
   border-radius: 8px;
   overflow: auto;
   box-shadow: inset 0px 0px 0px #999;
-  transition: box-shadow 300ms;
+  transition: box-shadow 300ms, background-color 300ms;
   
   &:hover {
     box-shadow: rgba(153, 153, 153, 0.5) 0px 0px 8px inset;
@@ -26,6 +26,10 @@ const Wrapper = styled.div.attrs({
       box-shadow: rgba(191, 191, 191, 0.5) 0px 0px 0px;
     }
   }
+  
+  &:active {
+      background-color: #eee;
+    }
 
   &::-webkit-scrollbar {
     display: none;

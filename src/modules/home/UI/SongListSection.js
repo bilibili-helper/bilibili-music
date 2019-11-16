@@ -8,6 +8,8 @@ import PropTypes from 'prop-types';
 import React, {useState, useCallback, useRef, useEffect} from 'react';
 import styled from 'styled-components';
 
+const DEFAULT_COVER = chrome.extension.getURL('static/images/default-cover.png');
+
 const Wrapper = styled.div.attrs({
     className: 'song-list-section',
 })`
@@ -113,10 +115,7 @@ const SongMenu = styled.div`
   header {
     position: sticky;
     top: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: whitesmoke;
+    background: #fff linear-gradient(90deg, rgba(0, 0, 0, 0.1), transparent);
     z-index: 1;
     overflow: hidden;
     
@@ -136,7 +135,7 @@ const SongMenu = styled.div`
     .menu-info {
       display: flex;
       flex-grow: 1;
-      background: linear-gradient(90deg, rgba(0, 0, 0, 0.1), transparent);
+      //background: linear-gradient(90deg, rgba(0, 0, 0, 0.1), transparent);
       
       .cover {
         display: block;
@@ -149,14 +148,52 @@ const SongMenu = styled.div`
       
       .description {
         color: #fff;
-        .title {
+        p {
           width: 175px;
+          text-shadow: hsla(0, 0%, 0%, 0.35) 0px 0px 3px;
+        }
+        .title {
           font-weight: bold;
           text-overflow: ellipsis;
-          text-shadow: 0px 0px 3px #333;
         }
-        .playCount {
-          text-shadow: 0px 0px 3px #333;
+        .mediaCount, .playCount {
+          margin: 4px 0;
+        }
+      }
+    }
+    
+    .extra-tools {
+      display: flex;
+      flex-direction: row-reverse;
+      .bilibili-music-icon-play {
+        transform: scale(0.8);
+        vertical-align: bottom;
+        margin-left: -2px;
+        margin-right: 2px;
+      }
+      .play-all-btn {
+        margin: 8px;
+        padding: 2px 8px;
+        border: none;
+        border-radius: 4px;
+        font-size: 12px;
+        background-color: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        opacity: 1;
+        outline: none;
+        transition: opacity 300ms;
+        
+        &:hover {
+          opacity: 0.75;
+        }
+        
+        &:active {
+          opacity: 0.5;
+        }
+        
+        &[disabled] {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
       }
     }
@@ -231,7 +268,7 @@ const CloseBtn = styled(Icon)`
   margin: 8px 8px auto auto;
   padding: 4px;
   color: #fff;
-  text-shadow: rgb(51, 51, 51) 0px 0px 3px;
+  text-shadow: rgba(51, 51, 51, 0.5) 0px 0px 3px;
   cursor: pointer;
 `;
 
@@ -278,6 +315,7 @@ export const SongListSection = function({data}) {
     const [loading, setLoading] = useState(false);
     const [songMenu, setSongMenu] = useState({});
     const [songList, setSongList] = useState([]);
+    const [song, setSong] = useState(null);
 
     // 歌单被点击
     const handleOnClickSongMenu = useCallback((item) => {
@@ -314,6 +352,11 @@ export const SongListSection = function({data}) {
         chrome.runtime.sendMessage({command: 'setSong', from: 'songMenu', song});
     }, [songMenu]);
 
+    // 播放全部
+    const handleOnClickPlayAllSong = useCallback((songMenu) => {
+        chrome.runtime.sendMessage({command: 'addSongMenu', from: 'songMenu', songMenu});
+    }, [songMenu]);
+
     useEffect(() => {
         chrome.runtime.sendMessage({command: 'getSongList'}, (songList) => {
             //console.info(songList);
@@ -324,9 +367,20 @@ export const SongListSection = function({data}) {
             //console.info(message);
             const {command = '', from = ''} = message;
             if (from !== 'playerBackground') return true;
-            if (command === 'play') {
-                //setDisabled(false);
-                //setPlaying(true);
+            if (command === 'ended') {
+                setSong(message.song);
+                setSongList(message.songList);
+            } else if (command === 'pause') { // 暂停或播放结束
+                setSong(message.song);
+                setSongList(message.songList);
+            } else if (command === 'play') {
+                setSong(message.song);
+                setSongList(message.songList);
+            } else if (command === 'loadstart') {
+                setSong(message.song);
+            } else if ((command === 'addSongSuccessfully' || command === 'reduceSongSuccessfully' || command === 'clearSongListSuccessfully') && message.songList) {
+                setSong(!message.song);
+                setSongList(message.songList);
             }
         });
     }, []);
@@ -336,30 +390,46 @@ export const SongListSection = function({data}) {
             <Loading className={loading ? 'show' : ''}/>
             <SongMenu className={showSongMenu ? 'show' : ''} ref={songMenuRef}>
                 <header>
-                    <img className="background" src={songMenu.cover}/>
+                    <img className="background" src={songMenu.cover || DEFAULT_COVER}/>
                     <div className="menu-info">
-                        <img className="cover" src={songMenu.cover}/>
+                        <a href={songMenu ? `https://www.bilibili.com/audio/am${songMenu.menuId}` : null} target="_blank">
+                            <img className="cover" src={songMenu.cover || DEFAULT_COVER}/>
+                        </a>
                         <div className="description">
                             <p className="title">{dealWithTitle(songMenu.title)}</p>
+                            <p className="mediaCount"><span>歌曲数：</span>{songMenu.snum || songMenu.song}</p>
                             <p className="playCount"><span>播放数：</span>{songMenu.statistic && songMenu.statistic.play}</p>
                         </div>
+                    </div>
+                    <div className="extra-tools">
+                        <button
+                            className="play-all-btn"
+                            disabled={!songMenu.data || songMenu.data.length === 0}
+                            onClick={() => handleOnClickPlayAllSong(songMenu.data)}
+                        >
+                            <Icon icon="play"/>播放全部
+                        </button>
                     </div>
                     <CloseBtn icon="close" onClick={handleOnClickClose}/>
                 </header>
                 <ol className="song-list">
-                    {songMenu.data && songMenu.data.map((song, index) => {
-                        const inList = songList.find((item) => item.id === song.id);
+                    {songMenu.data && songMenu.data.map((s, index) => {
+                        const inList = songList.find((item) => item.id === s.id);
                         return (
-                            <li key={song.id}>
+                            <li key={s.id}>
                                 <span className="index">{index + 1}. </span>
-                                <span className="title">{dealWithTitle(song.title)}</span>
+                                <span className="title">{dealWithTitle(s.title)}</span>
                                 {/*<span className="author">{song.author}</span>*/}
                                 <AddBtn
                                     size={12}
                                     icon={inList ? 'reduce' : 'add'}
-                                    onClick={() => inList ? handleOnClickReduceSong(song): handleOnClickAddSong(song)}
+                                    onClick={() => inList ? handleOnClickReduceSong(s) : handleOnClickAddSong(s)}
                                 />
-                                <PlayBtn icon="play" size={12} onClick={() => handleOnClickPlaySong(song)}/>
+                                <PlayBtn
+                                    size={12}
+                                    icon={song && (s.id === song.id) && song.playing ? 'pause' : 'play'}
+                                    onClick={() => handleOnClickPlaySong(s)}
+                                />
                             </li>
                         );
                     })}
@@ -367,13 +437,14 @@ export const SongListSection = function({data}) {
             </SongMenu>
             <Wrapper>
                 {data.data && data.data.map((item) => {
+                    if (item.snum === 0 || item.song === 0) return null;
                     return (
                         <div
                             key={item.menuId}
                             className="song-list-item"
                             onClick={() => handleOnClickSongMenu(item)}
                         >
-                            <img src={item.cover}/>
+                            <img src={item.cover || DEFAULT_COVER}/>
                             <div className="description">
                                 <p className="title">{dealWithTitle(item.title)}</p>
                                 <p className="intro">{item.intro}</p>

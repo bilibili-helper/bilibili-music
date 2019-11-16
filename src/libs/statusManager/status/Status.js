@@ -29,26 +29,24 @@ export class Status {
         this.msg = msg;
     }
 
-    updatePermission = (pass, msg) => {
+    updatePermission = (name, pass, msg) => {
         if (this.pass !== pass) {
             this.pass = pass;
             this.setStatus(pass, msg);
             chrome.runtime.sendMessage({
                 command: 'permissionUpdate',
-                permission: this.name,
+                permission: name,
                 value: pass,
                 msg,
             });
         }
-        this.triggerListener(pass);
+        this.triggerListener(name, pass, msg);
     };
 
     // 当权限系统检测到变化时进行通知
-    triggerListener = (value) => {
+    triggerListener = (name, value, msg) => {
         this.relatedFeatures.map((feature) => {
-            if (feature.permissionMap[this.name] !== value) {
-                feature.setPermission(this.name, value);
-            }
+            feature.setPermission(name, value, msg);
         });
     };
 

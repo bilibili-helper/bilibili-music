@@ -21,7 +21,7 @@ export class NotificationsStatus extends Status {
         return new Promise(resolve => {
             chrome.permissions.contains({permissions: ['notifications']}, (res) => {
                 const [pass, msg] = res ? [true, ''] : [false, __('status_notifications_error')];
-                this.updatePermission(pass, msg);
+                this.updatePermission('notification', pass, msg);
                 resolve({pass, msg});
             });
         });

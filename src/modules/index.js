@@ -10,6 +10,7 @@ import {DataManager} from 'Modules/dataManager';
 import {PopupAnchor} from 'Modules/popupAnchor';
 import {Player} from 'Modules/Player';
 import {Home} from 'Modules/home';
+import {Login} from 'Modules/login';
 
 export const Features = {
     GoogleAnalytics,
@@ -18,4 +19,5 @@ export const Features = {
     PopupAnchor,
     Player,
     Home,
+    Login,
 };

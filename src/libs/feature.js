@@ -92,11 +92,11 @@ export class Feature {
         });
     };
 
-    setPermission = (name, value) => {
-        this.permissionMap[name] = value;
+    setPermission = (name, value, msg) => {
+        this.permissionMap[name] = {pass: value, msg};
         if (this.settings.on === false) { return; } // 如果feature没有启动，则不会触发launch或pause
         const f = this[`permissionHandle${_.upperFirst(name)}`];
-        if (typeof f === 'function') { f(value); }
+        if (typeof f === 'function') { f(value, msg); }
     };
 
     // 初始化配置

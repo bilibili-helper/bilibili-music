@@ -5,7 +5,7 @@
  */
 export const fetchJSON = (url, options) => {
     const RETRY_DELAY = 1000; // ms
-    const RETRY_MAX = 10;
+    const RETRY_MAX = 5;
     let retryTime = 0;
     const request = () => {
         return fetch(url, {...options})

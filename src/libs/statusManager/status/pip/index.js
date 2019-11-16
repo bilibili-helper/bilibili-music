@@ -21,7 +21,7 @@ export class PipStatus extends Status {
         return new Promise(resolve => {
             const enabled = !!document.pictureInPictureEnabled;
             const [pass, msg] = enabled ? [true, ''] : [false, __('status_pip_error')];
-            this.updatePermission(pass, msg);
+            this.updatePermission('pip', pass, msg);
             resolve({pass, msg});
         });
     }

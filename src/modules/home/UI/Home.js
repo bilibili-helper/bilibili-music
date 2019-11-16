@@ -18,12 +18,9 @@ const Wrapper = styled.div.attrs({id: 'home'})`
   overflow: auto overlay;
   
   &::-webkit-scrollbar {
-    //color: black;
     display: none;
   }
 `;
-
-
 
 export const Home = function() {
     const [data, setData] = useState({});
@@ -33,10 +30,11 @@ export const Home = function() {
             console.info(res);
         });
     }, []);
-    const {banner = [], recommendList = {}} = data;
+    const {banner = [], recommendList = {}, userRank = {}} = data;
     return (
         <Wrapper>
             <Banner data={banner}/>
+            <SongListSection data={userRank}/>
             <SongListSection data={recommendList}/>
         </Wrapper>
     );

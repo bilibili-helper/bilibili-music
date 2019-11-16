@@ -38,6 +38,7 @@ export class DataManager extends Feature {
             }
             return true;
         });
+
     };
 
     launch = async () => {
@@ -55,7 +56,7 @@ export class DataManager extends Feature {
                 userRank,
                 recommendList,
             };
-            console.info(this.tempData);
+            //console.info(this.tempData);
         });
     };
 

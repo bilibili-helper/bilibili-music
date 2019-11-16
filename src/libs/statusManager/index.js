@@ -39,11 +39,11 @@ export class StatusManager {
             Promise.all(_.map(feature.permissions, async (permissionStr) => {
                 const permissionMap = permissionStr.split('?');
                 const permissionName = permissionMap[0];
-                if (this.isValidStatus(permissionName)) { // 未定义权限类型
+                if (this.isValidStatus(permissionName)) {
                     const statusObject = this.statusMap[permissionName];
                     statusObject.addFeature(feature);
                     return statusObject.check(permissionMap[1]);
-                } else {
+                } else { // 未定义权限类型
                     return {pass: false, msg: `Undefined permission: ${permissionName}`};
                 }
             })).then(checkResults => {
@@ -56,8 +56,8 @@ export class StatusManager {
 
     addListener = () => {
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-            if (message.command === 'getPermissionMap') {
-                sendResponse(this.permissionMap);
+            if (message.command === 'getPermissionMap' && message.featureName) {
+                sendResponse(this.features[message.featureName].permissionMap);
             }
             return true;
         });
