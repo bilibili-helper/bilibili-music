@@ -15,10 +15,45 @@ const Wrapper = styled.div.attrs({
 })`
   display: flex;
   flex-wrap: wrap;
-  margin: 8px 8px 8px 8px;
+  flex-direction: column;
+  margin: 8px 8px 12px 8px;
+  
+  header {
+    display: block;
+    padding: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .menu-list {
+    display: flex;
+    flex-direction: column;
+    &.simple {
+      flex-direction: row;
+      width: 100%;
+      overflow: overlay auto;
+      &::-webkit-scrollbar {
+        display: none;
+      }
+      .song-list-item {
+        margin-right: 4px;
+        margin-bottom: 0;
+        width: 103px;
+        
+        &:last-of-type {
+          margin-right: 0;
+        }
+        img {
+          margin-right: 0;
+        }
+      }
+    }
+  }
   
   .song-list-item {
     display: flex;
+    box-sizing: border-box;
     margin-bottom: 8px;
     padding: 8px;
     //width: 85px;
@@ -32,6 +67,10 @@ const Wrapper = styled.div.attrs({
     transition: box-shadow 300ms, background-color 300ms;
     will-change: box-shadow, background-color;
     //user-select: none;
+    
+    &:last-of-type {
+      margin-bottom: 0;
+    }
     
     &:hover {
       //background-color: #eee;
@@ -165,13 +204,13 @@ const SongMenu = styled.div`
     .extra-tools {
       display: flex;
       flex-direction: row-reverse;
-      .bilibili-music-icon-play {
+      .bilibili-music-iconfont {
         transform: scale(0.8);
-        vertical-align: bottom;
+        vertical-align: text-bottom;
         margin-left: -2px;
         margin-right: 2px;
       }
-      .play-all-btn {
+      button {
         margin: 8px;
         padding: 2px 8px;
         border: none;
@@ -309,22 +348,41 @@ const dealWithTitle = (title) => {
     return title;
 };
 
-export const SongListSection = function({data}) {
+export const SongListSection = function({topic, menuList = [], collectedSongMenu: userCollectedSongMenu = [], simple = false}) {
     const songMenuRef = useRef(null);
     const [showSongMenu, setShow] = useState(false);
+    const [songMenuList, setSongMenuList] = useState(menuList);
+    const [collectedSongMenu, setCollectedSongMenu] = useState(userCollectedSongMenu);
     const [loading, setLoading] = useState(false);
     const [songMenu, setSongMenu] = useState({});
     const [songList, setSongList] = useState([]);
     const [song, setSong] = useState(null);
+    const [songMenuHasStar, setSongMenuHasStar] = useState(false); // 当前显示歌单是否被收藏
+
+    useEffect(() => {
+        setSongMenuList(menuList);
+        setCollectedSongMenu(userCollectedSongMenu);
+    }, [menuList, userCollectedSongMenu]);
+
+    useEffect(() => {
+        const found = collectedSongMenu.find((m) => m.menuId === songMenu.menuId);
+        setSongMenuHasStar(!!found);
+    }, [songMenu, collectedSongMenu]);
 
     // 歌单被点击
     const handleOnClickSongMenu = useCallback((item) => {
         setLoading(true);
-        chrome.runtime.sendMessage({command: 'getMenuSong', sid: item.menuId}, (res) => {
+        chrome.runtime.sendMessage({command: 'getSongMenu', sid: item.menuId}, (res) => {
             setLoading(false);
             setShow(true);
             songMenuRef.current.scrollTop = 0;
-            setSongMenu({...item, ...res});
+            setSongMenu({...item, data: res});
+        });
+        chrome.runtime.sendMessage({
+            command: 'setGAEvent',
+            action: '点击-歌单列表',
+            category: topic,
+            label: `歌单 ${item.menuId}`,
         });
     }, [showSongMenu, songMenu]);
 
@@ -353,11 +411,38 @@ export const SongListSection = function({data}) {
     }, [songMenu]);
 
     // 播放全部
-    const handleOnClickPlayAllSong = useCallback((songMenu) => {
-        chrome.runtime.sendMessage({command: 'addSongMenu', from: 'songMenu', songMenu});
+    const handleOnClickPlayAllSong = useCallback((songList) => {
+        chrome.runtime.sendMessage({command: 'addSongMenu', from: 'songMenu', songList});
+    }, [songMenu]);
+
+    // 收藏歌单
+    const handleOnClickStarMenu = useCallback((songMenu) => {
+        chrome.runtime.sendMessage({
+            command: 'setGAEvent',
+            action: '点击-歌单歌曲列表',
+            category: '收藏按钮',
+            label: `歌单 ${songMenu.menuId}`,
+        });
+
+        if (songMenuHasStar) {
+            chrome.runtime.sendMessage({command: 'unStarSongMenu', from: 'songMenu', songMenu});
+        } else {
+            chrome.runtime.sendMessage({command: 'starSongMenu', from: 'songMenu', songMenu});
+        }
+    }, []);
+
+    // 当前歌曲封面被点击
+    const handleOnClickCover = useCallback(() => {
+        chrome.runtime.sendMessage({
+            command: 'setGAEvent',
+            action: '点击-歌单歌曲列表',
+            category: '封面',
+            label: `歌单 ${songMenu.menuId}`,
+        });
     }, [songMenu]);
 
     useEffect(() => {
+        setSongMenuList(menuList);
         chrome.runtime.sendMessage({command: 'getSongList'}, (songList) => {
             //console.info(songList);
             setSongList(songList);
@@ -392,7 +477,12 @@ export const SongListSection = function({data}) {
                 <header>
                     <img className="background" src={songMenu.cover || DEFAULT_COVER}/>
                     <div className="menu-info">
-                        <a href={songMenu ? `https://www.bilibili.com/audio/am${songMenu.menuId}` : null} target="_blank">
+                        <a
+                            href={songMenu ? `https://www.bilibili.com/audio/am${songMenu.menuId}` : null}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={handleOnClickCover}
+                        >
                             <img className="cover" src={songMenu.cover || DEFAULT_COVER}/>
                         </a>
                         <div className="description">
@@ -408,6 +498,13 @@ export const SongListSection = function({data}) {
                             onClick={() => handleOnClickPlayAllSong(songMenu.data)}
                         >
                             <Icon icon="play"/>播放全部
+                        </button>
+                        <button
+                            className="star-btn"
+                            disabled={!songMenu.data || songMenu.data.length === 0}
+                            onClick={() => handleOnClickStarMenu(songMenu)}
+                        >
+                            <Icon icon="star"/>{songMenuHasStar ? '取消收藏' : '收藏歌单'}
                         </button>
                     </div>
                     <CloseBtn icon="close" onClick={handleOnClickClose}/>
@@ -436,27 +533,35 @@ export const SongListSection = function({data}) {
                 </ol>
             </SongMenu>
             <Wrapper>
-                {data.data && data.data.map((item) => {
-                    if (item.snum === 0 || item.song === 0) return null;
-                    return (
-                        <div
-                            key={item.menuId}
-                            className="song-list-item"
-                            onClick={() => handleOnClickSongMenu(item)}
-                        >
-                            <img src={item.cover || DEFAULT_COVER}/>
-                            <div className="description">
-                                <p className="title">{dealWithTitle(item.title)}</p>
-                                <p className="intro">{item.intro}</p>
+                {topic && (songMenuList && songMenuList.length !== 0 && (!!songMenuList[0].snum || !!songMenuList[0].song)) && (
+                    <header>{topic}</header>
+                )}
+                <div className={['menu-list', simple ? 'simple' : ''].join(' ')}>
+                    {songMenuList.map((item) => {
+                        if (!item.snum && !item.song) return null;
+                        return (
+                            <div
+                                key={item.menuId}
+                                className="song-list-item"
+                                onClick={() => handleOnClickSongMenu(item)}
+                            >
+                                <img src={item.cover || DEFAULT_COVER}/>
+                                {!simple && <div className="description">
+                                    <p className="title">{dealWithTitle(item.title)}</p>
+                                    <p className="intro">{item.intro}</p>
+                                </div>}
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </Wrapper>
         </React.Fragment>
     );
 };
 
 SongListSection.propTypes = {
-    data: PropTypes.array,
+    topic: PropTypes.oneOfType(PropTypes.any, PropTypes.string),
+    menuList: PropTypes.array,
+    collectedSongMenu: PropTypes.array,
+    simple: PropTypes.bool,
 };

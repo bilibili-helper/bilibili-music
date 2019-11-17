@@ -352,6 +352,11 @@ export const Player = function() {
         }
         const prevSong = songList[currentIndex - 1];
         chrome.runtime.sendMessage({command: 'setSong', from: 'player', song: prevSong});
+        chrome.runtime.sendMessage({
+            command: 'setGAEvent',
+            action: '点击-播放器',
+            category: '上一首歌',
+        });
     }, [song]);
 
     // 切到下一首歌
@@ -362,11 +367,21 @@ export const Player = function() {
         }
         const nextSong = songList[currentIndex + 1];
         chrome.runtime.sendMessage({command: 'setSong', from: 'player', song: nextSong});
+        chrome.runtime.sendMessage({
+            command: 'setGAEvent',
+            action: '点击-播放器',
+            category: '下一首歌',
+        });
     }, [song, songList]);
 
     // 展开音量调节按钮
     const handleOnClickVolumeBtn = useCallback(() => {
         setShowVolume(!showVolume);
+        !showVolume && chrome.runtime.sendMessage({
+            command: 'setGAEvent',
+            action: '点击-播放器',
+            category: '调节音量',
+        });
     }, [showVolume]);
 
     // 展开音量调节按钮
@@ -396,6 +411,16 @@ export const Player = function() {
     const handleOnClickPlaySong = useCallback((s) => {
         chrome.runtime.sendMessage({command: 'setSong', from: 'songList', song: s});
     }, []);
+
+    // 当前歌曲封面被点击
+    const handleOnClickCover = useCallback(() => {
+        chrome.runtime.sendMessage({
+            command: 'setGAEvent',
+            action: '点击-播放器',
+            category: '封面',
+            label: song.id,
+        });
+    }, [song]);
 
     // 删除媒体事件
     const handleOnClickReduceSong = useCallback((song) => {
@@ -496,7 +521,12 @@ export const Player = function() {
                 </SongList>
             </SongListWrapper>
             <PlayerWrapper>
-                <a href={song ? `https://www.bilibili.com/audio/au${song.id}` : null} target="_blank">
+                <a
+                    href={song ? `https://www.bilibili.com/audio/au${song.id}` : null}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={handleOnClickCover}
+                >
                     <Cover className={song && song.cover ? 'show' : ''} src={song ? song.cover : EMPTY_IMAGE_SRC}/>
                 </a>
                 <PrevBtn disabled={disabled || songList.length <= 1} icon="prev" size={14} onClick={handleOnClickPrevBtn}/>

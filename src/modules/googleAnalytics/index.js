@@ -5,7 +5,6 @@
  */
 
 import {Feature} from 'Libs/feature';
-import _ from 'lodash';
 
 export class GoogleAnalytics extends Feature {
     constructor() {

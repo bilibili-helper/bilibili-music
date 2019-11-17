@@ -4,7 +4,7 @@
  * Description:
  */
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, {useCallback} from 'react';
 import styled from 'styled-components';
 
 const Wrapper = styled.div.attrs({
@@ -72,13 +72,29 @@ const dealWithCoverSchema = (schema) => {
     return schema;
 };
 
-export const Banner = function({data}) {
+export const Banner = function({data = []}) {
+    const handleOnClickBanner = useCallback((banner) => {
+        chrome.runtime.sendMessage({
+            command: 'setGAEvent',
+            action: '点击-Banner',
+            category: 'Banner',
+            label: banner.bannerId,
+        });
+    }, []);
+
     return (
         <Wrapper>
             {data.map((item) => {
                 return (
                     <div className="banner-item" key={item.bannerId}>
-                        <a href={dealWithCoverSchema(item.schema)} target="_blank" rel="noopener noreferrer"><img src={item.bannerImgUrl}/></a>
+                        <a
+                            href={dealWithCoverSchema(item.schema)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => handleOnClickBanner(item.bannerId)}
+                        >
+                            <img src={item.bannerImgUrl}/>
+                        </a>
                     </div>
                 );
             })}
