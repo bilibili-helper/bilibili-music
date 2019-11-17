@@ -219,10 +219,13 @@ const SongList = styled.div`
     word-break: keep-all;
     cursor: pointer;
     overflow: hidden;
-    transition: background-color 300ms;
+    transition: background-color 300ms, color 300ms;
     
     &.playing {
       color: #FF7AA5;
+    }
+    
+    &.current {
       background-color: rgba(255, 255, 255, 0.8);
     }
     
@@ -373,12 +376,7 @@ export const Player = function() {
 
     // 切到上一首歌
     const handleOnClickPrevBtn = useCallback(() => {
-        let currentIndex = songList.findIndex((s) => s.id === song.id);
-        if (currentIndex === 0) {
-            currentIndex = songList.length;
-        }
-        const prevSong = songList[currentIndex - 1];
-        chrome.runtime.sendMessage({command: 'setSong', from: 'player', song: prevSong});
+        chrome.runtime.sendMessage({command: 'setPrevSong', from: 'player'});
         chrome.runtime.sendMessage({
             command: 'setGAEvent',
             action: '点击-播放器',
@@ -388,12 +386,7 @@ export const Player = function() {
 
     // 切到下一首歌
     const handleOnClickNextBtn = useCallback(() => {
-        let currentIndex = songList.findIndex((s) => s.id === song.id);
-        if (currentIndex === songList.length - 1) {
-            currentIndex = -1;
-        }
-        const nextSong = songList[currentIndex + 1];
-        chrome.runtime.sendMessage({command: 'setSong', from: 'player', song: nextSong});
+        chrome.runtime.sendMessage({command: 'setNextSong', from: 'player'});
         chrome.runtime.sendMessage({
             command: 'setGAEvent',
             action: '点击-播放器',
@@ -542,7 +535,14 @@ export const Player = function() {
                 <SongList className={[song && song.cover ? '' : 'noCover']}>
                     {songList.length > 0 && songList.map((s, index) => {
                         return (
-                            <div key={s.id} className={['song-list-item', s.playing ? 'playing' : ''].join(' ')}>
+                            <div
+                                key={s.id}
+                                className={[
+                                    'song-list-item',
+                                    s.playing ? 'playing' : '',
+                                    s.current ? 'current' : '',
+                                ].join(' ')}
+                            >
                                 <span className="index">{s.playing ? <Icon icon="playing" size={12}/> : `${index + 1}.`}</span>
                                 <span className="title">{s.title}</span>
 

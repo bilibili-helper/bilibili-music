@@ -82,6 +82,10 @@ export class Player extends Feature {
                 sendResponse(this.player.volume);
             } else if (command === 'setVolume' && message.volume !== undefined) {
                 this.setVolume(+message.volume);
+            } else if (command === 'setNextSong') {
+                this.setNextSong();
+            } else if (command === 'setPrevSong') {
+                this.setPrevSong();
             } else if (command === 'getPlayerState') { // 获取播放器状态
                 sendResponse(this.getPlayerState());
             } else if (command === 'getCurrentSong') { // 获取当前播放媒体
@@ -131,8 +135,8 @@ export class Player extends Feature {
                     if (currentSong.src) {
                         this.player.src = currentSong.src;
                     } else {
-                        this.getSongData(currentSong.id, 2).then(res => {
-                            currentSong.src = res;
+                        this.getSongData(currentSong.id, 2).then(src => {
+                            currentSong.src = src;
                             this.player.src = currentSong.src;
                         });
                     }
@@ -249,11 +253,88 @@ export class Player extends Feature {
         // 播放结束
         this.player.addEventListener('ended', (event) => {
             //console.info(event);
-            const currentIndex = this.getCurrentIndex();
-            const currentSong = this.songList[currentIndex];
-            if (currentSong) {
-                currentSong.playing = false;
+            this.setNextSong();
+        });
+
+        this.player.addEventListener('volumechange', () => {
+            chrome.runtime.sendMessage({
+                command: 'volumechange',
+                from: 'playerBackground',
+                volume: this.player.volume,
+            });
+        });
+    };
+
+    setPrevSong = () => {
+        const currentIndex = this.getCurrentIndex();
+        const currentSong = this.songList[currentIndex];
+        if (currentSong) {
+            currentSong.playing = false;
+        }
+        new Promise(resolve => {
+            if (currentSong.src) {
+                resolve();
+            } else {
+                this.getSongData(currentSong.id)
+                    .then((src) => {
+                        currentSong.src = src;
+                        resolve();
+                    });
             }
+        }).then(() => {
+            /**
+             * 根据不同不放模式进行切歌操作
+             */
+            switch (this.playMode) {
+                case 0: { // 列表顺序播放，到列表底部则自动暂停
+                    if (currentIndex > 0 && currentIndex < this.songList.length) { // 不是列表中第一个媒体
+                        this.setSongByIndex(currentIndex - 1);
+                    } else { // 播放完毕
+                        chrome.runtime.sendMessage({
+                            command: 'ended',
+                            from: 'playerBackground',
+                            song: currentSong,
+                            songList: this.songList,
+                        });
+                    }
+                    break;
+                }
+                case 1: { // 列表循环
+                    if (currentIndex > 0 && currentIndex < this.songList.length) { // 不是列表中第一个媒体
+                        this.setSongByIndex(currentIndex - 1);
+                    } else { // 列表播放完毕，从第一首开始循环
+                        this.setSongByIndex(this.songList.length - 1);
+                    }
+                    break;
+                }
+                case 2: { // 单曲循环
+                    this.setSongByIndex(currentIndex);
+                    break;
+                }
+                case 3: { // 列表随机
+                    this.setRandomSong();
+                }
+            }
+        });
+    };
+
+    setNextSong = () => {
+        const currentIndex = this.getCurrentIndex();
+        const currentSong = this.songList[currentIndex];
+        if (currentSong) {
+            currentSong.playing = false;
+        }
+        new Promise(resolve => {
+            if (currentSong.src) {
+                resolve();
+            } else {
+                this.getSongData(currentSong.id)
+                    .then((src) => {
+                        currentSong.src = src;
+                        resolve();
+                    });
+            }
+        }).then(() => {
             /**
              * 根据不同不放模式进行切歌操作
              */
@@ -284,23 +365,18 @@ export class Player extends Feature {
                     break;
                 }
                 case 3: { // 列表随机
-                    const min = 0;
-                    const max = this.songList.length;
-                    const randomIndex = Math.floor((Math.random() * (max - min)) + min);
-                    this.setSongByIndex(randomIndex);
+                    this.setRandomSong();
                 }
             }
-
-        });
-
-        this.player.addEventListener('volumechange', () => {
-            chrome.runtime.sendMessage({
-                command: 'volumechange',
-                from: 'playerBackground',
-                volume: this.player.volume,
-            });
         });
     };
+
+    setRandomSong = () => {
+        const min = 0;
+        const max = this.songList.length;
+        const randomIndex = Math.floor((Math.random() * (max - min)) + min);
+        this.setSongByIndex(randomIndex);
+    }
 
     getPlayerState = () => {
         const currentSong = this.getCurrent();
@@ -334,9 +410,15 @@ export class Player extends Feature {
             currentSong.playing = false;
         }
         songByIndex.current = true;
-        return this.addSong(songByIndex).then(() => {
-            this.player.src = songByIndex.src;
-        });
+        return this.getSongData(songByIndex.id)
+                   .then(src => {
+                       songByIndex.src = src;
+                   })
+                   .then(() => this.addSong(songByIndex)
+                                   .then(() => {
+                                       this.player.src = songByIndex.src;
+                                   }),
+                   );
     };
 
     // 通过索引获取播放列表中的媒体

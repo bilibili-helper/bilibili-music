@@ -256,10 +256,13 @@ const SongMenu = styled.div`
       word-break: keep-all;
       cursor: pointer;
       overflow: hidden;
-      //transition: background-color 300ms;
+      transition: background-color 300ms, color 300ms;
       
       &.playing {
         color: #FF7AA5;
+      }
+      
+      &.current {
         background-color: #fafafa;
       }
       
@@ -527,8 +530,15 @@ export const SongListSection = function({topic, menuList = [], collectedSongMenu
                     {songMenu.data && songMenu.data.map((s, index) => {
                         const inList = songList.find((item) => item.id === s.id);
                         const isPlaying = song ? (song.id === s.id && song.playing) : false;
+                        const isCurrent = song ? (song.id === s.id && song.current) : false;
                         return (
-                            <li key={s.id} className={isPlaying ? 'playing' : ''}>
+                            <li
+                                key={s.id}
+                                className={[
+                                    isPlaying ? 'playing' : '',
+                                    isCurrent ? 'current' : '',
+                                ].join(' ')}
+                            >
                                 <span className="index">{isPlaying ? <Icon icon="playing"/> : `${index + 1}.`}</span>
                                 <span className="title">{dealWithTitle(s.title)}</span>
                                 {/*<span className="author">{song.author}</span>*/}
