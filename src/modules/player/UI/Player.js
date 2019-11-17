@@ -100,14 +100,20 @@ const NextBtn = styled(PlayerBtn).attrs({
     className: 'next-btn',
 })`
   margin-left: 0;
-  margin-right: auto;
+  //margin-right: auto;
   padding: 8px;
+`;
+
+const PlayModeBtn = styled(PlayerBtn).attrs({
+    className: 'play-mode-btn',
+})`
 `;
 
 const ListBtn = styled(PlayerBtn).attrs({
     className: 'list-btn',
 })`
   //margin-left: auto;
+  margin-top: 0;
   padding: 8px;
 `;
 
@@ -335,6 +341,19 @@ const VolumeBar = styled.input.attrs({
   }
 `;
 
+const getPlayModeStr = (mode) => {
+    switch (mode) {
+        case 0:
+            return 'orderList';
+        case 1:
+            return 'loopList';
+        case 2:
+            return 'loopOne';
+        case 3:
+            return 'random';
+    }
+};
+
 export const Player = function() {
     const volumeRef = useRef(null);
     const [disabled, setDisabled] = useState(true);
@@ -344,6 +363,7 @@ export const Player = function() {
 
     const [showVolume, setShowVolume] = useState(false);
     const [volume, setVolume] = useState(1);
+    const [playMode, setPlayMode] = useState(0);
 
     // 播放/暂停按钮点击事件
     const handleOnClickPlayBtn = useCallback(() => {
@@ -399,6 +419,18 @@ export const Player = function() {
             volume: volumeRef.current.value,
         });
     }, [showVolume]);
+
+    // 播放模式切换按钮
+    const handleOnClickPlayModeBtn = useCallback(() => {
+        chrome.runtime.sendMessage({
+            command: 'setGAEvent',
+            action: '点击-播放器',
+            category: '切换播放模式',
+        });
+        chrome.runtime.sendMessage({command: 'switchPlayMode', from: 'player'}, (playMode) => {
+            setPlayMode(playMode);
+        });
+    }, [playMode]);
 
     // 展开播放列表
     const handleOnClickSongListBtn = useCallback(() => {
@@ -485,9 +517,13 @@ export const Player = function() {
         chrome.runtime.sendMessage({command: 'getCurrentSong', from: 'player'}, (song) => {
             setSong(song);
         });
-
+        // 初始化音量
         chrome.runtime.sendMessage({command: 'getVolume', from: 'player'}, (volume) => {
             volumeRef.current.value = volume;
+        });
+        // 初始化播放模式
+        chrome.runtime.sendMessage({command: 'getPlayMode', from: 'player'}, (playMode) => {
+            setPlayMode(playMode);
         });
     }, []);
 
@@ -553,6 +589,11 @@ export const Player = function() {
                         onMouseUp={handleOnMouseUpVolumeBtn}
                     />
                 </VolumeBox>
+                <PlayModeBtn
+                    disabled={disabled || songList.length === 0}
+                    icon={getPlayModeStr(playMode)}
+                    onClick={handleOnClickPlayModeBtn}
+                />
                 <ListBtn icon="list" size={20} onClick={handleOnClickSongListBtn}/>
             </PlayerWrapper>
         </Wrapper>

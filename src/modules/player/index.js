@@ -27,7 +27,7 @@ export class Player extends Feature {
 
         this.player = null;
         this.songList = []; // 当前播放列表
-        this.playMode = 'normal'; // 播放模式
+        this.playMode = 0; // 播放模式
     }
 
     addListener = () => {
@@ -137,11 +137,12 @@ export class Player extends Feature {
                         });
                     }
                 });
-            } else if (command === 'setPlayMode' && message.playMode) {
-                this.setPlayMode(message.playMode)
-                    .then(() => {
-                        sendResponse(true);
-                    });
+            } else if (command === 'switchPlayMode') {
+                this.switchPlayMode().then(() => {
+                    sendResponse(this.playMode);
+                });
+            } else if (command === 'getPlayMode') {
+                sendResponse(this.playMode);
             }
             return true;
         });
@@ -178,7 +179,7 @@ export class Player extends Feature {
         this.player.volume = volume;
 
         // init play mode
-        this.playMode = this.store ? this.store.playMode || 'normal' : 'normal';
+        this.playMode = this.store ? this.store.playMode || 0 : 0;
 
         // 捕获错误
         this.player.addEventListener('error', function(event) {
@@ -257,7 +258,7 @@ export class Player extends Feature {
              * 根据不同不放模式进行切歌操作
              */
             switch (this.playMode) {
-                case 'normal': { // 列表顺序播放，到列表底部则自动暂停
+                case 0: { // 列表顺序播放，到列表底部则自动暂停
                     if (currentIndex >= 0 && currentIndex < this.songList.length - 1) { // 不是列表中最后一个媒体
                         this.setSongByIndex(currentIndex + 1);
                     } else { // 播放完毕
@@ -270,7 +271,7 @@ export class Player extends Feature {
                     }
                     break;
                 }
-                case 'loopList': { // 列表循环
+                case 1: { // 列表循环
                     if (currentIndex >= 0 && currentIndex < this.songList.length - 1) { // 不是列表中最后一个媒体
                         this.setSongByIndex(currentIndex + 1);
                     } else { // 列表播放完毕，从第一首开始循环
@@ -278,11 +279,11 @@ export class Player extends Feature {
                     }
                     break;
                 }
-                case 'loopOne': { // 单曲循环
+                case 2: { // 单曲循环
                     this.setSongByIndex(currentIndex);
                     break;
                 }
-                case 'random': { // 列表随机
+                case 3: { // 列表随机
                     const min = 0;
                     const max = this.songList.length;
                     const randomIndex = Math.floor((Math.random() * (max - min)) + min);
@@ -420,8 +421,10 @@ export class Player extends Feature {
     };
 
     // 设置播放模式
-    setPlayMode = (mode) => {
+    switchPlayMode = (mode = this.playMode) => {
         return new Promise(resolve => {
+            if (mode === 3) mode = 0;
+            else mode += 1;
             this.playMode = mode;
             this.store = {...this.store, playMode: mode};
             resolve();

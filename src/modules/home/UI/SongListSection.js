@@ -442,7 +442,7 @@ export const SongListSection = function({topic, menuList = [], collectedSongMenu
         } else {
             chrome.runtime.sendMessage({command: 'starSongMenu', from: 'songMenu', songMenu});
         }
-    }, []);
+    }, [songMenuHasStar]);
 
     // 当前歌曲封面被点击
     const handleOnClickCover = useCallback(() => {
