@@ -5,7 +5,7 @@
  */
 
 import {Feature} from 'Libs/feature';
-import {version} from 'Utils';
+import _ from 'lodash';
 
 export class GoogleAnalytics extends Feature {
     constructor() {
@@ -20,86 +20,125 @@ export class GoogleAnalytics extends Feature {
         });
     }
 
-    launch = () => {
-        this.insertGAScriptTag().then(() => {
-            const debugMode = this.getSetting('debug') || {};
-            this.send({
-                hitType: 'event',
-                eventCategory: 'initialization',
-                eventAction: 'init',
-                eventLabel: `${(debugMode.on ? 'official' : 'dev')} ${version}`,
-                nonInteraction: true,
-            });
-        });
+    permissionHandleLogin = (pass, msg) => {
+        this.permissionMap.login = {pass, msg};
     };
 
-    send = ({hitType, eventAction, eventCategory, eventLabel, nonInteraction}) => {
+    launch = () => {
+        this.getLoginStatus()
+            .then(this.insertGAScriptTag)
+            .then(() => {
+                this.send({
+                    hitType: 'pageview',
+                    page: 'background',
+                });
+            });
+    };
+
+    send = ({hitType, eventAction, eventCategory, eventLabel, nonInteraction, ...rest}) => {
         window.ga && window.ga('send', {
             hitType,
             eventAction,
             eventCategory,
             eventLabel,
             nonInteraction,
+            ...rest,
         });
     };
 
-    listener = (message) => {
-        /**
-         * 需要如下几个字段
-         * action 表示操作类型 click init等
-         * category 类别 功能名称等
-         * label 功能中的具体项目名称等
-         * nonInteraction 标记非交互
-         */
-        if (this.settings.on && message.command === 'setGAEvent' && message.action && message.category) {
-            const {action: eventAction, label, category: eventCategory = '', nonInteraction = false} = message;
-            this.insertGAScriptTag().then(() => {
-                this.send({
-                    hitType: 'event',
-                    eventAction,
-                    eventCategory,
-                    eventLabel: label,
-                    nonInteraction,
-                });
+    getLoginStatus = () => {
+        return new Promise((resolve) => {
+            chrome.cookies.get({
+                url: 'http://interface.bilibili.com/',
+                name: 'DedeUserID',
+            }, (cookie) => {
+                const thisSecond = (new Date()).getTime() / 1000;
+                // expirationDate 是秒数
+                //console.info(cookie);
+                if (cookie && cookie.expirationDate > thisSecond) {
+                    resolve(cookie.value);
+                } else {
+                    resolve();
+                }
             });
-        }
-        return true;
+        });
     };
 
     addListener = () => {
-        chrome.runtime.onMessage.addListener(this.listener);
+        chrome.runtime.onMessage.addListener((message) => {
+            /**
+             * 需要如下几个字段
+             * action 表示操作类型 click init等
+             * category 类别 功能名称等
+             * label 功能中的具体项目名称等
+             * nonInteraction 标记非交互
+             */
+            if (this.settings.on && message.command === 'setGAEvent' && message.action && message.category) {
+                const {action: eventAction, label, category: eventCategory = '', nonInteraction = false} = message;
+                this.getLoginStatus()
+                    .then(this.insertGAScriptTag)
+                    .then(() => {
+                        this.send({
+                            hitType: 'event',
+                            eventAction,
+                            eventCategory,
+                            eventLabel: label,
+                            nonInteraction,
+                        });
+                    });
+            }
+            return true;
+        });
     };
 
-    insertGAScriptTag = (UA = 'UA-39765420-2') => {
+    permissionHandleLogin = (value) => {
+        if (value) {
+            this.getLoginStatus()
+                .then((userId) => {
+                    window.ga('set', 'userId', userId);
+                });
+        } else {
+            this.getStorage('userId').then(({userId}) => {
+                if (!userId) {
+                    userId = String(Math.random()).slice(2);
+                    this.setStorage({userId}).then(() => userId);
+                }
+                window.ga('set', 'userId', userId);
+            });
+        }
+    };
+
+    insertGAScriptTag = (uid, UA = 'UA-39765420-6') => {
         return new Promise(resolve => {
+            if (!uid) {
+                resolve(this.getStorage('userId').then(({userId}) => {
+                    if (userId) return userId;
+                    else {
+                        const userId = String(Math.random()).slice(2);
+                        return this.setStorage({userId}).then(() => userId);
+                    }
+                }));
+            } else resolve(uid);
+        })
+        .then((userId) => {
             if (document.getElementsByClassName('ga-script').length === 0) {
-                this.getStorage('userId')
-                    .then(({userId}) => {
-                        if (userId) return userId;
-                        else {
-                            const userId = String(Math.random()).slice(2);
-                            return this.setStorage({userId}).then(() => userId);
-                        }
-                    })
-                    .then((userId) => {
-                        const script = `https://www.google-analytics.com/analytics.js`;
-                        //const script = `https://www.google-analytics.com/analytics${debug ? '_debug' : ''}.js`;
-                        window['GoogleAnalyticsObject'] = 'ga';
-                        window.ga = window.ga || function() {
-                            (window.ga.q = window.ga.q || []).push(arguments);
-                        };
-                        window.ga.l = 1 * new Date();
-                        const scriptTag = document.createElement('script');
-                        scriptTag.setAttribute('class', 'ga-script');
-                        scriptTag.setAttribute('async', 1);
-                        scriptTag.setAttribute('src', script);
-                        document.head.appendChild(scriptTag);
-                        window.ga('create', UA, 'auto');
-                        window.ga('set', 'checkProtocolTask');
-                        window.ga('set', 'userId', userId);
-                        resolve();
-                    });
-            } else resolve();
+                const script = `https://www.google-analytics.com/analytics.js`;
+                //const script = `https://www.google-analytics.com/analytics${debug ? '_debug' : ''}.js`;
+                window['GoogleAnalyticsObject'] = 'ga';
+                window.ga = window.ga || function() {
+                    (window.ga.q = window.ga.q || []).push(arguments);
+                };
+                window.ga.l = 1 * new Date();
+                const scriptTag = document.createElement('script');
+                scriptTag.setAttribute('class', 'ga-script');
+                scriptTag.setAttribute('async', 1);
+                scriptTag.setAttribute('src', script);
+                document.head.appendChild(scriptTag);
+                window.ga('create', UA, 'auto');
+                window.ga('set', 'checkProtocolTask');
+                window.ga('set', 'userId', userId);
+                window.ga('set', 'dimension1', chrome.runtime.getManifest().version);
+            }
         });
     };
 };

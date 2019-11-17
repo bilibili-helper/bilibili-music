@@ -12,7 +12,7 @@ export class Home extends Feature {
         super({
             name: 'home',
             kind: 'popup',
-            dependencies: ['popupAnchor'],
+            dependencies: ['popupAnchor', 'googleAnalytics'],
             settings: {
                 on: true,
                 hide: true,

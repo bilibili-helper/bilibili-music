@@ -76,7 +76,6 @@ export const Login = function() {
     useEffect(() => {
         chrome.runtime.onMessage.addListener(((message) => {
             if (message.command === 'permissionUpdate') {
-                console.info(message);
                 permissionMap[message.permission] = {pass: message.value, msg: message.msg};
                 setPermissionMap(permissionMap);
             }

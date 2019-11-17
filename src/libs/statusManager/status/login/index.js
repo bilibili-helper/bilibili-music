@@ -14,14 +14,11 @@ export class LoginStatus extends Status {
         super('login');
     }
 
-    check(hasChange = false) {
-        if (this.hasChecked && !hasChange) { return this.currentStatus; }
-        this.hasChecked = true;
-
+    check() {
         return new Promise((resolve) => {
             chrome.cookies.get({
-                url: 'http://interface.bilibili.com/',
-                name: 'DedeUserID',
+                url: 'http://www.bilibili.com/',
+                name: 'bili_jct',
             }, (cookie) => {
                 const thisSecond = (new Date()).getTime() / 1000;
                 let [pass, msg] = [false, ''];

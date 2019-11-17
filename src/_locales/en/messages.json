@@ -1,14 +1,14 @@
 {
     "extensionName": {
-        "message": "哔哩哔哩音乐：bilibili.com 辅助扩展",
+        "message": "Bilibili Music: Bilibili.com Auxiliary",
         "description": "Extension: Name"
     },
     "extensionShortName": {
-        "message": "哔哩哔哩音乐",
+        "message": "Bilibili Music",
         "description": "Extension: Short Name"
     },
     "extensionDescription": {
-        "message": "一款播放哔哩哔哩弹幕网音乐的扩展程序",
+        "message": "The music player for bilibili music",
         "description": "Extension: Description"
     }
 }

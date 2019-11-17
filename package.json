@@ -1,6 +1,6 @@
 {
     "name": "bilibili-music",
-    "version": "0.1.0",
+    "version": "1.0.3",
     "private": true,
     "description": "基于哔哩哔哩平台的音频区的扩展播放器 KIA~",
     "main": "index.js",

@@ -5,7 +5,6 @@
  * Description:
  */
 import {Feature} from 'Libs/feature';
-//import {__, createTab, hasNewVersion, version, getURL} from 'Utils';
 
 export class Login extends Feature {
     constructor() {
@@ -13,7 +12,7 @@ export class Login extends Feature {
             name: 'login',
             kind: 'popup',
             permissions: ['login'],
-            dependencies: ['popupAnchor'],
+            dependencies: ['popupAnchor', 'googleAnalytics'],
             settings: {
                 on: true,
                 hide: true,
@@ -22,4 +21,8 @@ export class Login extends Feature {
             },
         });
     }
+
+    permissionHandleLogin = (pass, msg) => {
+        this.permissionMap.login = {pass, msg};
+    };
 }

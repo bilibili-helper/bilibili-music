@@ -35,8 +35,8 @@ export class StatusManager {
     check(feature) {
         return new Promise(resolve => {
             let [pass, msg] = [true, '']; // 通过状态
-            if (_.isEmpty(feature.permissions)) { resolve({pass, msg}); }// 没有设置需要检查的权限，则无条件通过
-            Promise.all(_.map(feature.permissions, async (permissionStr) => {
+            if (_.isEmpty(feature.permissions)) { resolve({pass, msg}); } // 没有设置需要检查的权限，则无条件通过
+            Promise.all(_.map(feature.permissions, (permissionStr) => {
                 const permissionMap = permissionStr.split('?');
                 const permissionName = permissionMap[0];
                 if (this.isValidStatus(permissionName)) {

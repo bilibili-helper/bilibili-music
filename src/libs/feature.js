@@ -31,7 +31,7 @@ export class Feature {
         this.settings = {...settings, kind, name: this.name, permissions};
         this.permissionMap = {};
         _.each(this.permissions, (permissionName) => {
-            this.permissionMap[permissionName] = false;
+            this.permissionMap[permissionName] = {pass: false, msg: ''};
         });
         this.simplifyFilterList = [
             'description', 'title', 'permissions', 'dependencies',

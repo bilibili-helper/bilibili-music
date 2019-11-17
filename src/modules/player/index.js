@@ -16,7 +16,7 @@ export class Player extends Feature {
             name: 'player',
             kind: 'popup',
             permission: ['notifications'],
-            dependencies: ['popupAnchor'],
+            dependencies: ['popupAnchor', 'googleAnalytics'],
             settings: {
                 on: true,
                 hide: true,
@@ -27,7 +27,6 @@ export class Player extends Feature {
 
         this.player = null;
         this.songList = [];
-        this.songCache = {};
     }
 
     addListener = () => {
@@ -140,22 +139,8 @@ export class Player extends Feature {
     };
 
     launch = () => {
-        this.initCache();
         this.initPlayer();
         this.initSongList();
-    };
-
-    initCache = () => {
-        if (!this.store) {
-            this.store = {
-                songCache: {},
-            };
-        }
-        if (this.store.songCache) {
-            this.songCache = this.store.songCache;
-        } else {
-            this.songCache = {};
-        }
     };
 
     // 初始化播放列表，缓存在本地
@@ -180,7 +165,7 @@ export class Player extends Feature {
         this.player = new Audio();
 
         // init volume
-        const volume = this.store.volume || 0.8;
+        const volume = this.store ? this.store.volume || 0.8 : 0.8;
         this.player.volume = volume;
 
         // 捕获错误
@@ -366,18 +351,10 @@ export class Player extends Feature {
      * @returns {Promise<unknown>}
      */
     getSongData = (sid, quality = 2, privilege = 2) => {
-        const src = this.songCache[sid];
-        if (src) {
-            return Promise.resolve(src);
-        } else {
-            return fetchJSON(`${API.songData}?sid=${sid}&quality=${quality}&privilege=${privilege}`)
-            .then(res => {
-                const src = res.cdns[0];
-                this.songCache[sid] = src;
-                this.store = {...this.store, songCache: this.songCache};
-                return src;
-            });
-        }
+        return fetchJSON(`${API.songData}?sid=${sid}&quality=${quality}&privilege=${privilege}`)
+        .then(res => {
+            return res.cdns[0];
+        });
     };
 
     setVolume = (value) => {
