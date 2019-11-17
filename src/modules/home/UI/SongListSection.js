@@ -258,8 +258,14 @@ const SongMenu = styled.div`
       overflow: hidden;
       //transition: background-color 300ms;
       
+      &.playing {
+        color: #FF7AA5;
+        background-color: #fafafa;
+      }
+      
       &:hover {
-        background-color: whitesmoke;
+        background-color: #f5f5f5;
+        
         .action-btn {
           opacity: 1;
         }
@@ -276,6 +282,13 @@ const SongMenu = styled.div`
       .index {
         display: inline-block;
         margin-right: 4px;
+        width: 12px;
+        text-align: center;
+        
+        .bilibili-music-iconfont {
+          transform-origin: left;
+          transform: scale(0.8);
+        }
       }
       
       .title {
@@ -443,8 +456,9 @@ export const SongListSection = function({topic, menuList = [], collectedSongMenu
 
     useEffect(() => {
         setSongMenuList(menuList);
-        chrome.runtime.sendMessage({command: 'getSongList'}, (songList) => {
+        chrome.runtime.sendMessage({command: 'getSongList'}, ({song, songList}) => {
             //console.info(songList);
+            setSong(song);
             setSongList(songList);
         });
         // 接收来自播放器背景页的播放状态指令
@@ -512,9 +526,10 @@ export const SongListSection = function({topic, menuList = [], collectedSongMenu
                 <ol className="song-list">
                     {songMenu.data && songMenu.data.map((s, index) => {
                         const inList = songList.find((item) => item.id === s.id);
+                        const isPlaying = song ? (song.id === s.id && song.playing) : false;
                         return (
-                            <li key={s.id}>
-                                <span className="index">{index + 1}. </span>
+                            <li key={s.id} className={isPlaying ? 'playing' : ''}>
+                                <span className="index">{isPlaying ? <Icon icon="playing"/> : `${index + 1}.`}</span>
                                 <span className="title">{dealWithTitle(s.title)}</span>
                                 {/*<span className="author">{song.author}</span>*/}
                                 <AddBtn

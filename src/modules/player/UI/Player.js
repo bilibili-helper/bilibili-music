@@ -215,6 +215,11 @@ const SongList = styled.div`
     overflow: hidden;
     transition: background-color 300ms;
     
+    &.playing {
+      color: #FF7AA5;
+      background-color: rgba(255, 255, 255, 0.8);
+    }
+    
     &:hover {
       background-color: rgba(255, 255, 255, 0.5);
       .action-btn {
@@ -227,6 +232,8 @@ const SongList = styled.div`
     }
     
     .index {
+      display: inline-block;
+      width: 12px;
       margin-right: 4px;
     }
     
@@ -471,7 +478,7 @@ export const Player = function() {
                 setDisabled(false);
             }
         });
-        chrome.runtime.sendMessage({command: 'getSongList', from: 'player'}, (songList) => {
+        chrome.runtime.sendMessage({command: 'getSongList', from: 'player'}, ({songList}) => {
             setSongList(songList);
         });
         // 初始化歌曲
@@ -499,9 +506,10 @@ export const Player = function() {
                 <SongList className={[song && song.cover ? '' : 'noCover']}>
                     {songList.length > 0 && songList.map((s, index) => {
                         return (
-                            <div key={s.id} className="song-list-item">
-                                <span className="index">{index + 1}.</span>
+                            <div key={s.id} className={['song-list-item', s.playing ? 'playing' : ''].join(' ')}>
+                                <span className="index">{s.playing ? <Icon icon="playing" size={12}/> : `${index + 1}.`}</span>
                                 <span className="title">{s.title}</span>
+
                                 <SongListReduceBtn
                                     size={12}
                                     icon={'reduce'}

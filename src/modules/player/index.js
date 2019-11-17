@@ -87,7 +87,10 @@ export class Player extends Feature {
             } else if (command === 'getCurrentSong') { // 获取当前播放媒体
                 sendResponse(this.getCurrent() || null);
             } else if (command === 'getSongList') { // 获取播放列表
-                sendResponse(this.songList);
+                sendResponse({
+                    song: this.getCurrent(),
+                    songList: this.songList,
+                });
             } else if (command === 'clearSongList') { // 清空播放列表
                 this.clearSongList().then(() => {
                     chrome.runtime.sendMessage({
