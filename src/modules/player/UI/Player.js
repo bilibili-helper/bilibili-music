@@ -5,9 +5,22 @@
  */
 import {Icon} from 'Components/Icon';
 import React, {useState, useCallback, useEffect, useRef} from 'react';
-import styled from 'styled-components';
+import styled, {keyframes} from 'styled-components';
+import {Song} from './Song';
 
-const EMPTY_IMAGE_SRC = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+const fadeIn = keyframes`
+  0% {
+    opacity: 0;
+    transform: translate(0, 10px);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, 0px);
+    opacity: 1;
+  }
+`;
 
 const Wrapper = styled.div.attrs({'id': 'player'})`
   position: absolute;
@@ -16,6 +29,10 @@ const Wrapper = styled.div.attrs({'id': 'player'})`
   left: 0;
   height: 42px;
   z-index: 10;
+  animation-name: ${fadeIn};
+  animation-duration: 200ms;
+  animation-fill-mode: backwards;
+  animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
 `;
 
 const PlayerWrapper = styled.div`
@@ -28,27 +45,10 @@ const PlayerWrapper = styled.div`
   align-items: center;
   height: 42px;
   box-sizing: border-box;
-  box-shadow: rgba(17, 17, 17, 0.7) 0px 10px 50px;
+  box-shadow: rgba(17, 17, 17, 0.7) 0px 10px 30px;
   background-color: #333;
   background-image: linear-gradient(45deg, #333, #111);
   z-index: 1;
-`;
-
-const Cover = styled.img`
-  width: 64px;
-  height: 64px;
-  margin: 0px auto -110px 6px;
-  border-radius: 4px;
-  background-color: #ddd;
-  box-shadow: rgba(0, 0, 0, 0.5) 0px 2px 6px -2px;
-  opacity: 0;
-  cursor: pointer;
-  transition: opacity 300ms, margin 300ms;
-  
-  &.show {
-    opacity: 1;
-    margin-bottom: 36px;
-  }
 `;
 
 const PlayerBtn = styled(Icon)`
@@ -74,24 +74,31 @@ const PlayerBtn = styled(Icon)`
   }
 `;
 
-const VolumeBtn = styled(PlayerBtn).attrs({
-    className: 'volume-btn',
+const StarBox = styled.div`
+  margin-left: auto;
+  position: relative;
+`;
+
+const StarList = styled.div`
+
+`;
+
+const StarBtn = styled(PlayerBtn).attrs({
+    className: 'star-btn',
 })`
-  //margin-left: auto;
-  padding: 8px;
+  padding: 4px;
 `;
 
 const PlayBtn = styled(PlayerBtn).attrs({
     className: 'play-btn',
 })`
-  margin: 0 6px;
+  margin: 0;
   padding: 10px;
 `;
 
 const PrevBtn = styled(PlayerBtn).attrs({
     className: 'prev-btn',
 })`
-  margin-left: auto;
   margin-right: 0;
   padding: 8px;
 `;
@@ -104,16 +111,66 @@ const NextBtn = styled(PlayerBtn).attrs({
   padding: 8px;
 `;
 
+const VolumeBox = styled.div`
+  position: relative;
+`;
+
+const VolumeBar = styled.input.attrs({
+    className: 'volume-bar',
+})`
+  position: absolute;
+  bottom: 34px;
+  left: calc(-50% + 25px);
+  width: 20px;
+  height: 100px;
+  transform: translate(0px, 140px);
+  -webkit-appearance: slider-vertical;
+  opacity: 0;
+  user-select: none;
+  transition: opacity 200ms, transform 200ms;
+  
+  &.show {
+    opacity: 1;
+    transform: translate(0px, 0px);
+  }
+  
+  &::-webkit-slider-thumb {
+    background-color: #222;
+    border: none;
+    cursor: pointer;
+  }
+  
+  &::-webkit-slider-container {
+    background-color: transparent;
+  }
+  
+  &::-webkit-slider-runnable-track {
+    padding: 2px;
+    border-radius: 30px; 
+    background: #222;
+    box-shadow: rgba(0, 0, 0, 0.5) 0px 2px 2px;;
+  }
+`;
+
+const VolumeBtn = styled(PlayerBtn).attrs({
+    className: 'volume-btn',
+})`
+  padding: 4px;
+`;
+
 const PlayModeBtn = styled(PlayerBtn).attrs({
     className: 'play-mode-btn',
 })`
+  padding: 4px;
 `;
+
 
 const ListBtn = styled(PlayerBtn).attrs({
     className: 'list-btn',
 })`
   //margin-left: auto;
   margin-top: 0;
+  margin-right: 4px;
   padding: 8px;
 `;
 
@@ -212,21 +269,22 @@ const SongList = styled.div`
     position: relative;
     display: flex;
     justify-content: flex-start;
-    align-items: center;
-    padding: 8px 16px;
+    padding: 4px 4px 4px 16px;
+    line-height: 16px;
     white-space: nowrap;
     text-overflow: ellipsis;
     word-break: keep-all;
     cursor: pointer;
+    user-select: none;
     overflow: hidden;
-    transition: background-color 300ms, color 300ms;
+    transition: background-color 150ms, color 150ms;
     
     &.playing {
       color: #FF7AA5;
     }
     
     &.current {
-      background-color: rgba(255, 255, 255, 0.8);
+      background-color: rgba(255, 255, 255, 0.7);
     }
     
     &:hover {
@@ -243,12 +301,16 @@ const SongList = styled.div`
     .index {
       display: inline-block;
       width: 12px;
+      height: 24px;
+      line-height: 24px;
       margin-right: 4px;
     }
     
     .title {
       margin-right: auto;
-      width: 250px;
+      max-width: 250px;
+      height: 24px;
+      line-height: 24px;
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;
@@ -270,78 +332,32 @@ const ActionBtn = styled(Icon)`
   color: #999;
   opacity: 0;
   cursor: pointer;
-  //background-color: whitesmoke;
-  transition: background-color 300ms;
+  background-color: transparent;
+  transition: background-color 300ms, color 300ms;
   
   &:hover {
-    //background-color: #fff;
+    color: #666;
+    background-color: rgba(0, 0, 0, 0.1);
   }
   
   &:active {
-    //background-color: #ececec;
+    color: #333;
+    background-color: rgba(0, 0, 0, 0.2);
   }
 `;
 
 const SongListPlayBtn = styled(ActionBtn).attrs({
     className: 'action-btn song-list-play-btn',
 })`
-  margin: 4px;
-  position: absolute;
-  top: 0px;
-  right: 4px;
-  transform: scale(0.75);
+  line-height: normal;
 `;
 
 const SongListReduceBtn = styled(ActionBtn).attrs({
     className: 'action-btn song-list-reduce-btn',
 })`
-  margin: 4px;
-  position: absolute;
-  top: 0px;
-  right: 30px;
-  transform: scale(0.75);
-`;
-
-const VolumeBox = styled.div`
-  position: relative;
-`;
-
-const VolumeBar = styled.input.attrs({
-    className: 'volume-bar',
-})`
-  position: absolute;
-  bottom: 34px;
-  left: calc(-50% + 25px);
-  width: 20px;
-  height: 100px;
-  transform: translate(0px, 140px);
-  -webkit-appearance: slider-vertical;
-  opacity: 0;
-  user-select: none;
-  transition: opacity 200ms, transform 200ms;
-  
-  &.show {
-    opacity: 1;
-    transform: translate(0px, 0px);
-  }
-  
-  &::-webkit-slider-thumb {
-    background-color: #222;
-    border: none;
-    cursor: pointer;
-  }
-  
-  &::-webkit-slider-container {
-    background-color: transparent;
-  }
-  
-  &::-webkit-slider-runnable-track {
-    padding: 2px;
-    border-radius: 30px; 
-    background: #222;
-    box-shadow: rgba(0, 0, 0, 0.5) 0px 2px 2px;;
-    //height:15px;
-  }
+  margin-left: auto;
+  margin-right: 4px;
+  line-height: normal;
 `;
 
 const getPlayModeStr = (mode) => {
@@ -382,7 +398,7 @@ export const Player = function() {
             action: '点击-播放器',
             category: '上一首歌',
         });
-    }, [song]);
+    }, []);
 
     // 切到下一首歌
     const handleOnClickNextBtn = useCallback(() => {
@@ -392,7 +408,7 @@ export const Player = function() {
             action: '点击-播放器',
             category: '下一首歌',
         });
-    }, [song, songList]);
+    }, []);
 
     // 展开音量调节按钮
     const handleOnClickVolumeBtn = useCallback(() => {
@@ -444,21 +460,15 @@ export const Player = function() {
         chrome.runtime.sendMessage({command: 'setSong', from: 'songList', song: s});
     }, []);
 
-    // 当前歌曲封面被点击
-    const handleOnClickCover = useCallback(() => {
-        chrome.runtime.sendMessage({
-            command: 'setGAEvent',
-            action: '点击-播放器',
-            category: '封面',
-            label: song.id,
-        });
-    }, [song]);
+    const handleOnDoubleClickPlaySong = useCallback((e, s) => {
+        if (!e.target.classList.contains('bilibili-music-icon-delete')) { // 屏蔽连续删除导致的误播放
+            chrome.runtime.sendMessage({command: 'setSong', from: 'songList', song: s});
+        }
+    });
 
     // 删除媒体事件
-    const handleOnClickReduceSong = useCallback((song) => {
-        chrome.runtime.sendMessage({command: 'reduceSong', from: 'songList', song}, (songList) => {
-            setSongList(songList);
-        });
+    const handleOnClickDeleteSong = useCallback((song) => {
+        chrome.runtime.sendMessage({command: 'deleteSong', from: 'songList', song});
     }, [songList]);
 
     useEffect(() => {
@@ -484,7 +494,7 @@ export const Player = function() {
                 setSongList(message.songList);
             } else if (command === 'loadstart') {
                 setSong(message.song);
-            } else if ((command === 'addSongSuccessfully' || command === 'reduceSongSuccessfully' || command === 'clearSongListSuccessfully') && message.songList) {
+            } else if ((command === 'addSongSuccessfully' || command === 'deleteSongSuccessfully' || command === 'clearSongListSuccessfully') && message.songList) {
                 setDisabled(!message.song);
                 setSong(message.song);
                 setSongList(message.songList);
@@ -530,7 +540,7 @@ export const Player = function() {
                         className="clear-all-btn"
                         disabled={songList.length === 0}
                         onClick={handleOnClickClearSongList}
-                    >清空列表</button>
+                    ><Icon icon="delete" size="12"/> 清空列表</button>
                 </header>
                 <SongList className={[song && song.cover ? '' : 'noCover']}>
                     {songList.length > 0 && songList.map((s, index) => {
@@ -542,14 +552,15 @@ export const Player = function() {
                                     s.playing ? 'playing' : '',
                                     s.current ? 'current' : '',
                                 ].join(' ')}
+                                onDoubleClick={(e) => handleOnDoubleClickPlaySong(e, s)}
                             >
                                 <span className="index">{s.playing ? <Icon icon="playing" size={12}/> : `${index + 1}.`}</span>
                                 <span className="title">{s.title}</span>
 
                                 <SongListReduceBtn
                                     size={12}
-                                    icon={'reduce'}
-                                    onClick={() => handleOnClickReduceSong(s)}
+                                    icon="delete"
+                                    onClick={() => handleOnClickDeleteSong(s)}
                                 />
                                 <SongListPlayBtn
                                     size={12}
@@ -565,14 +576,13 @@ export const Player = function() {
                 </SongList>
             </SongListWrapper>
             <PlayerWrapper>
-                <a
-                    href={song ? `https://www.bilibili.com/audio/au${song.id}` : null}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={handleOnClickCover}
-                >
-                    <Cover className={song && song.cover ? 'show' : ''} src={song ? song.cover : EMPTY_IMAGE_SRC}/>
-                </a>
+                <Song song={song}/>
+                <StarBox>
+                    <StarBtn disabled={songList.length === 0} icon="star" size={14}/>
+                    <StarList>
+
+                    </StarList>
+                </StarBox>
                 <PrevBtn disabled={disabled || songList.length <= 1} icon="prev" size={14} onClick={handleOnClickPrevBtn}/>
                 <PlayBtn disabled={songList.length === 0} size={30} icon={song && song.playing ? 'pause' : 'play'} onClick={handleOnClickPlayBtn}/>
                 <NextBtn disabled={disabled || songList.length <= 1} icon="next" size={14} onClick={handleOnClickNextBtn}/>

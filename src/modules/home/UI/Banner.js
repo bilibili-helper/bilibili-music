@@ -22,7 +22,7 @@ const Wrapper = styled.div.attrs({
   
   &:hover {
     box-shadow: rgba(153, 153, 153, 0.5) 0px 0px 8px inset;
-    .banner-item {
+    .banner-item img {
       box-shadow: rgba(191, 191, 191, 0.5) 0px 0px 0px;
     }
   }
@@ -41,13 +41,7 @@ const Wrapper = styled.div.attrs({
     width: 100%;
     cursor: pointer;
     border-radius: 8px;
-    transition: box-shadow 300ms;
-    box-shadow: rgba(191, 191, 191, 0.5) 0px 3px 6px;
     
-    //&:first-of-type {
-    //  
-    //  border-radius: 4px 0 0 4px;
-    //}
       
     &:last-of-type {
       margin-right: 0;
@@ -58,6 +52,9 @@ const Wrapper = styled.div.attrs({
       display: block;
       width: 100%;
       border-radius: 8px;
+      -webkit-user-drag: none;
+      transition: box-shadow 300ms;
+      box-shadow: rgba(191, 191, 191, 0.5) 0px 3px 6px;
     }
   }
 `;

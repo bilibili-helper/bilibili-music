@@ -159,6 +159,7 @@ module.exports = {
         }),
         new CopyWebpackPlugin([
             {from: 'src/pages/**/*.html', to: '[1].html', test: /([^/]+)\/index\.html$/, flatten: true},
+            {from: 'src/pages/**/*.css', to: '[1].css', test: /([^/]+)\/style\.css$/, flatten: true},
             {from: 'src/static', to: 'static'},
         ]),
         new MergeJsonWebpackPlugin({

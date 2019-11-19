@@ -6,9 +6,21 @@
 import {Icon} from 'Components/Icon';
 import PropTypes from 'prop-types';
 import React, {useState, useCallback, useRef, useEffect} from 'react';
-import styled from 'styled-components';
+import styled, {keyframes} from 'styled-components';
 
 const DEFAULT_COVER = chrome.extension.getURL('static/images/default-cover.png');
+
+const fadeIn = keyframes`
+  0% {
+    opacity: 0;
+    transform: translate(0, 10px);
+  }
+  100% {
+    transform: translate(0, 0px);
+    opacity: 1;
+  }
+`;
+
 
 const Wrapper = styled.div.attrs({
     className: 'song-list-section',
@@ -24,11 +36,17 @@ const Wrapper = styled.div.attrs({
     font-size: 16px;
     font-weight: bold;
     color: #333;
+    animation-name: ${fadeIn};
+    animation-duration: 200ms;
+    animation-fill-mode: backwards;
+    animation-timing-function: ease-out;
   }
   
   .menu-list {
     display: flex;
     flex-direction: column;
+    padding: 3px;
+    
     &.simple {
       flex-direction: row;
       width: 100%;
@@ -66,7 +84,11 @@ const Wrapper = styled.div.attrs({
     box-shadow: inset 0px 0px 0px #999;
     transition: box-shadow 300ms, background-color 300ms;
     will-change: box-shadow, background-color;
-    //user-select: none;
+    animation-name: ${fadeIn};
+    animation-duration: 300ms;
+    animation-fill-mode: backwards;
+    animation-timing-function: ease-out;
+    user-select: none;
     
     &:last-of-type {
       margin-bottom: 0;
@@ -96,6 +118,7 @@ const Wrapper = styled.div.attrs({
       box-sizing: border-box;
       box-shadow: hsla(0, 0%, 75%, 0.5) 0px 3px 10px;
       transition: box-shadow 150ms;
+      -webkit-user-drag: none;
     }
     
     .description {
@@ -183,6 +206,7 @@ const SongMenu = styled.div`
         border-radius: 8px;
         box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 2px;
         user-select: none;
+        -webkit-user-drag: none;
       }
       
       .description {
@@ -206,7 +230,7 @@ const SongMenu = styled.div`
       flex-direction: row-reverse;
       .bilibili-music-iconfont {
         transform: scale(0.8);
-        vertical-align: text-bottom;
+        vertical-align: bottom;
         margin-left: -2px;
         margin-right: 2px;
       }
@@ -246,7 +270,7 @@ const SongMenu = styled.div`
     li {
       display: flex;
       justify-content: flex-start;
-      align-items: center;
+      //align-items: center;
       padding: 4px 30px 4px 8px;
       //border-radius: 4px;
       background-color: #fff;
@@ -255,15 +279,16 @@ const SongMenu = styled.div`
       text-overflow: ellipsis;
       word-break: keep-all;
       cursor: pointer;
+      user-select: none;
       overflow: hidden;
-      transition: background-color 300ms, color 300ms;
+      transition: background-color 150ms, color 150ms;
       
       &.playing {
         color: #FF7AA5;
       }
       
       &.current {
-        background-color: #fafafa;
+        background-color: rgba(255, 122, 165, 0.1);
       }
       
       &:hover {
@@ -285,7 +310,9 @@ const SongMenu = styled.div`
       .index {
         display: inline-block;
         margin-right: 4px;
-        width: 12px;
+        min-width: 12px;
+        height: 24px;
+        line-height: 24px;
         text-align: center;
         
         .bilibili-music-iconfont {
@@ -295,6 +322,8 @@ const SongMenu = styled.div`
       }
       
       .title {
+        height: 24px;
+        line-height: 24px;
         white-space: nowrap;
         text-overflow: ellipsis;
         word-break: keep-all;
@@ -415,10 +444,8 @@ export const SongListSection = function({topic, menuList = [], collectedSongMenu
     });
 
     // 删除媒体事件
-    const handleOnClickReduceSong = useCallback((song) => {
-        chrome.runtime.sendMessage({command: 'reduceSong', from: 'songMenu', song}, (songList) => {
-            setSongList(songList);
-        });
+    const handleOnClickDeleteSong = useCallback((song) => {
+        chrome.runtime.sendMessage({command: 'deleteSong', from: 'songMenu', song});
     });
 
     // 歌单歌曲播放事件
@@ -428,7 +455,7 @@ export const SongListSection = function({topic, menuList = [], collectedSongMenu
 
     // 播放全部
     const handleOnClickPlayAllSong = useCallback((songList) => {
-        chrome.runtime.sendMessage({command: 'addSongMenu', from: 'songMenu', songList});
+        chrome.runtime.sendMessage({command: 'setSongList', from: 'songMenu', songList});
     }, [songMenu]);
 
     // 收藏歌单
@@ -480,7 +507,7 @@ export const SongListSection = function({topic, menuList = [], collectedSongMenu
                 setSongList(message.songList);
             } else if (command === 'loadstart') {
                 setSong(message.song);
-            } else if ((command === 'addSongSuccessfully' || command === 'reduceSongSuccessfully' || command === 'clearSongListSuccessfully') && message.songList) {
+            } else if ((command === 'addSongSuccessfully' || command === 'deleteSongSuccessfully' || command === 'clearSongListSuccessfully') && message.songList) {
                 setSong(!message.song);
                 setSongList(message.songList);
             }
@@ -538,14 +565,15 @@ export const SongListSection = function({topic, menuList = [], collectedSongMenu
                                     isPlaying ? 'playing' : '',
                                     isCurrent ? 'current' : '',
                                 ].join(' ')}
+                                onDoubleClick={() => handleOnClickPlaySong(s)}
                             >
                                 <span className="index">{isPlaying ? <Icon icon="playing"/> : `${index + 1}.`}</span>
                                 <span className="title">{dealWithTitle(s.title)}</span>
                                 {/*<span className="author">{song.author}</span>*/}
                                 <AddBtn
                                     size={12}
-                                    icon={inList ? 'reduce' : 'add'}
-                                    onClick={() => inList ? handleOnClickReduceSong(s) : handleOnClickAddSong(s)}
+                                    icon={inList ? 'delete' : 'add'}
+                                    onClick={() => inList ? handleOnClickDeleteSong(s) : handleOnClickAddSong(s)}
                                 />
                                 <PlayBtn
                                     size={12}
@@ -562,12 +590,13 @@ export const SongListSection = function({topic, menuList = [], collectedSongMenu
                     <header>{topic}</header>
                 )}
                 <div className={['menu-list', simple ? 'simple' : ''].join(' ')}>
-                    {songMenuList.map((item) => {
+                    {songMenuList.map((item, index) => {
                         if (!item.snum && !item.song) return null;
                         return (
                             <div
                                 key={item.menuId}
                                 className="song-list-item"
+                                style={{'animation-delay': `${index * 80}ms`,}}
                                 onClick={() => handleOnClickSongMenu(item)}
                             >
                                 <img src={item.cover || DEFAULT_COVER}/>

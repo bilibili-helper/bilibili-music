@@ -157,13 +157,16 @@ export class DataManager extends Feature {
         const resultDataList = [];
         const get = (pn, ps) => {
             return fetchJSON(`${API.userCollectedMenu}?pn=${pn}&ps=${ps}`)
-            .then(({curPage, pageCount, data}) => {
-                resultDataList.push(...data);
-                if (curPage < pageCount) {
-                    return get(pn + 1, ps);
-                } else {
-                    return resultDataList;
-                }
+            .then((res) => {
+                if (res) {
+                    const {curPage, pageCount, data} = res;
+                    resultDataList.push(...data);
+                    if (curPage < pageCount) {
+                        return get(pn + 1, ps);
+                    } else {
+                        return resultDataList;
+                    }
+                } else return resultDataList;
             });
         };
         return get(pn, ps);

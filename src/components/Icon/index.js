@@ -27,14 +27,12 @@ const IconView = styled.div.attrs({
   -webkit-font-smoothing: antialiased;
 `;
 
-export class Icon extends React.Component {
-    propTypes = {
-        icon: PropTypes.any,
-        image: PropTypes.bool,
-        size: PropTypes.number,
-    }
-    render() {
-        const {icon, image = false, size = 16, ...rest} = this.props;
-        return <IconView icon={icon} image={image} size={size} {...rest}></IconView>;
-    }
+export const Icon = function({icon, image = false, size = 16, ...rest}) {
+    return <IconView icon={icon} image={image} size={size} {...rest}></IconView>;
 }
+
+Icon.propTypes = {
+    icon: PropTypes.any,
+    image: PropTypes.bool,
+    size: PropTypes.number,
+};
