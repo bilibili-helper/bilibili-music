@@ -20,7 +20,7 @@ export class MediaController {
         this.locked = false;  // 修改互斥锁
         this.lockCommand = null; // 锁住的指令
 
-        this.initBoundMedias();
+        this.__initBoundMedias();
     }
 
     toString() {
@@ -30,19 +30,6 @@ export class MediaController {
     get(sid) {
         return this.map.get(sid);
     }
-
-    lock = async (command = null) => {
-        if (!command) return; // 无指令不上锁
-        if (!this.locked) {
-            this.locked = true;
-            this.lockCommand = command;
-        } else return Promise.reject(`locked by command: ${this.lockCommand}`);
-    };
-
-    unlock = () => {
-        this.locked = false;
-        this.lockCommand = null;
-    };
 
     init(mediaList) {
         if (mediaList.length === 0) return new Map();
@@ -91,11 +78,23 @@ export class MediaController {
 
             randomPrev = item;
         } while (tempList.length >= 0);
-        console.info(map);
         return map;
     }
 
-    initBoundMedias = () => {
+    __lock = async (command = null) => {
+        if (!command) return; // 无指令不上锁
+        if (!this.locked) {
+            this.locked = true;
+            this.lockCommand = command;
+        } else return Promise.reject(`locked by command: ${this.lockCommand} when run ${command}`);
+    };
+
+    __unlock = () => {
+        this.locked = false;
+        this.lockCommand = null;
+    };
+
+    __initBoundMedias = () => {
         const values = Array.from(this.map.values());
         if (values.length > 0) {
             this.startMedia = values[0];
@@ -110,12 +109,44 @@ export class MediaController {
 
     getCurrentMedia = () => Array.from(this.map.values()).find(m => m.current);
 
+    /**
+     * 获取媒体链接
+     * @param sid
+     * @param quality
+     * @param privilege
+     * @returns {Promise<unknown>}
+     */
+    __getMediaSrc = async (media, quality = 2, privilege = 2) => {
+        return await fetchJSON(`${API.src}?sid=${media.id}&quality=${quality}&privilege=${privilege}`).then(res => res.cdns[0]);
+    };
+
+    __set2Current = async (media) => {
+        const src = await this.__getMediaSrc(media);
+        const currentMedia = this.getCurrentMedia();
+        if (currentMedia) {
+            currentMedia.current = false;
+            currentMedia.playing = false;
+        }
+        media.current = true;
+        media.playing = true;
+
+        this.mediaListCache = null;
+        this.player.src = src;
+    };
+
+    // 设置当前要播放的媒体
+    __set = async (media) => {
+        const currentMedia = this.getCurrentMedia();
+        if (currentMedia) {
+            currentMedia.playing = false;
+        }
+        return this.__set2Current(media);
+    };
+
     // 往链表后面添加元素
-    add = async (media, sameSkip = true) => {
-        void this.lock('add');
+    __add = async (media, sameSkip = true) => {
         // 判断是否已经存在
         if (this.map.has(media.id) && sameSkip) {
-            this.unlock();
             return Promise.resolve(this.map.get(media.id));
         }
 
@@ -126,9 +157,9 @@ export class MediaController {
         }
 
         // 更新和设置在有序链表中的下标
-        media.orderedNext = (this.startMedia && this.startMedia.id) || media.id;
-        media.orderedPrev = (this.orderedEndMedia && this.orderedEndMedia.id) || media.id;
+        media.orderedPrev = this.orderedEndMedia.id;
         this.orderedEndMedia.orderedNext = media.id;
+        media.orderedNext = this.startMedia.id;
         this.startMedia.orderedPrev = media.id;
 
         // 更新和设置在无序链表中的下标
@@ -139,19 +170,16 @@ export class MediaController {
         this.map.set(media.id, media);
 
         this.mediaListCache = null;
-
-        this.unlock();
-
         return media;
     };
 
-    delete = async ({id}) => {
-        void this.lock('delete');
+    __delete = async ({id}) => {
         const media = this.map.get(id);
         if (!media) {
-            this.unlock();
-            return Promise.reject(`没有找到id为「${id}」的媒体`);
+            this.__unlock();
+            return Promise.resolve(`没有找到id为「${id}」的媒体`);
         }
+
         // ordered
         const orderedPrev = media.orderedPrev;
         const orderedNext = media.orderedNext;
@@ -170,175 +198,145 @@ export class MediaController {
             this.player.pause();
         }
 
-        this.unlock();
         this.map.delete(id);
-    };
-
-    set2Current = async (media) => {
-        const src = await this.getMediaSrc(media);
-        const currentMedia = this.getCurrentMedia();
-        if (currentMedia) {
-            currentMedia.current = false;
-            currentMedia.playing = false;
-        }
-        media.current = true;
-        media.playing = true;
-
-        this.mediaListCache = null;
-        this.player.src = src;
     };
 
     getMediaList = () => this.mediaListCache || (this.mediaListCache = Array.from(this.map.values()));
 
     setMediaList = async (list = []) => {
-        await this.lock('setMediaList');
+        await this.__lock('setMediaList');
         this.map = this.init(list);
         this.mediaListCache = null;
-        this.initBoundMedias();
-        this.unlock();
-        return this.map;
+        this.__initBoundMedias();
+        this.__set(this.startMedia);
+        this.__unlock();
     };
 
     addMediaList = async (list = []) => {
-        await this.lock('addMediaList');
+        await this.__lock('addMediaList');
         do {
             if (list.length === 0) break;
-            this.unlock();
-            await this.add(list.shift());
+            this.__unlock();
+            await this.__add(list.shift(), true);
         } while (list.length > 0);
 
         this.mediaListCache = null;
-        this.initBoundMedias();
-        this.unlock();
+        this.__initBoundMedias();
+        this.__unlock();
         return this.map;
     };
 
     clearMediaList = async () => {
-        await this.lock('clearMediaList');
+        await this.__lock('clearMediaList');
         this.map = new Map();
         this.mediaListCache = null;
-        this.initBoundMedias();
-        this.unlock();
+        this.__initBoundMedias();
+        this.__unlock();
         return this.map;
     };
 
     // 播放现有媒体
     play = async () => {
-        await this.lock('play');
+        await this.__lock('play');
         const currentMedia = this.getCurrentMedia();
         if (!currentMedia) {
-            this.unlock();
+            this.__unlock();
             return Promise.reject('没有可播放的媒体');
         }
 
         currentMedia.playing = true;
         if (this.player.src) {
             this.player.play();
-            this.unlock();
         } else {
-            return this.set2Current(currentMedia).then(this.unlock);
+            await this.__set(currentMedia);
         }
+        this.__unlock();
     };
 
     pause = async () => {
-        await this.lock('pause');
+        await this.__lock('pause');
         const currentMedia = this.getCurrentMedia();
         if (this.player.src && currentMedia && currentMedia.playing) {
             currentMedia.playing = false;
             this.player.pause();
-            this.unlock();
+            this.__unlock();
         } else {
-            this.unlock();
+            this.__unlock();
             return Promise.reject('没有可暂停的媒体');
         }
     };
 
     // 重新设置并播放媒体
     setSong = async (media) => {
-        await this.lock('setSong');
-        const targetMedia = this.map.get(media.id);
-        if (targetMedia) { // 播放列表中的媒体
-            const currentMedia = this.getCurrentMedia();
-            if (currentMedia) {
-                currentMedia.playing = false;
-            }
-            return this.set2Current(targetMedia).then(this.unlock);
-        } else {
-            this.unlock();
-            return this.add(media).then(this.set2Current).then(this.unlock);
-        }
+        await this.__lock('setSong');
+        await this.__add(media, true).then(this.__set);
+        await this.__initBoundMedias();
+        await this.__unlock();
     };
 
-    turnPrev = async (playMode) => {
-        await this.lock('turnPrev');
+    addSong = async (media) => {
+        await this.__lock('addSong');
+        await this.__add(media, true);
+        await this.__initBoundMedias();
+        await this.__unlock();
+    };
+
+    deleteSong = async (media) => {
+        await this.__lock('deleteSong');
+        await this.__delete(media);
+        await this.__initBoundMedias();
+        await this.__unlock();
+    };
+
+    turn = async (direction, playMode) => {
         const currentMedia = this.getCurrentMedia();
         if (!currentMedia) {
-            this.unlock();
+            this.__unlock();
             return Promise.reject('没有已选中媒体');
+        }
+
+        let orderedMediaId = null;
+        let randomMediaId = null;
+        let bounderMediaId = null;
+        if (direction === 'prev') {
+            await this.__lock('turnPrev');
+            orderedMediaId = currentMedia.orderedPrev;
+            randomMediaId = currentMedia.randomPrev;
+            bounderMediaId = this.orderedEndMedia.id;
+        } else if (direction === 'next') {
+            await this.__lock('turnNext');
+            orderedMediaId = currentMedia.orderedNext;
+            randomMediaId = currentMedia.randomNext;
+            bounderMediaId = this.startMedia.id;
         }
 
         if (playMode === 0) { // 列表顺序播放
-            console.info(currentMedia);
-            const prev = this.map.get(currentMedia.orderedPrev);
-            if (prev.id === this.orderedEndMedia.id) { // 已经是列表头
+            const media = this.map.get(orderedMediaId);
+            if (media.id === bounderMediaId) { // 已经是列表头
                 chrome.runtime.sendMessage({
                     command: 'ended',
                     from: 'playerBackground',
                     song: currentMedia,
                     songList: this.getMediaList(),
                 });
-            } else await this.set2Current(prev);
-
+            } else await this.__set2Current(media);
         } else if (playMode === 1) { // 列表循环
-            const prev = this.map.get(currentMedia.orderedPrev);
-            await this.set2Current(prev);
+            const media = this.map.get(orderedMediaId);
+            await this.__set2Current(media);
         } else if (playMode === 2) { // 单曲循环
-            await this.set2Current(currentMedia);
+            await this.__set2Current(currentMedia);
         } else if (playMode === 3) { // 随机播放
-            const prev = this.map.get(currentMedia.randomPrev);
-            await this.set2Current(prev);
+            const media = this.map.get(randomMediaId);
+            await this.__set2Current(media);
         }
-        this.unlock();
+        this.__unlock();
+    };
+
+    turnPrev = async (playMode) => {
+        return await this.turn('prev', playMode);
     };
 
     turnNext = async (playMode) => {
-        await this.lock('turnNext');
-        const currentMedia = await this.getCurrentMedia();
-        if (!currentMedia) {
-            this.unlock();
-            return Promise.reject('没有已选中媒体');
-        }
-
-        if (playMode === 0) { // 列表顺序播放，到列表底部则自动暂停
-            const next = this.map.get(currentMedia.orderedNext);
-            if (next.id === this.startMedia.id) { // 不是列表中最后一个媒体
-                chrome.runtime.sendMessage({
-                    command: 'ended',
-                    from: 'playerBackground',
-                    song: currentMedia,
-                    songList: this.getMediaList(),
-                });
-            } else await this.set2Current(next);
-        } else if (playMode === 1) {
-            const next = this.map.get(currentMedia.orderedNext);
-            await this.set2Current(next);
-        } else if (playMode === 2) {
-            await this.set2Current(currentMedia);
-        } else if (playMode === 3) {
-            const next = this.map.get(currentMedia.randomNext);
-            await this.set2Current(next);
-        }
-        this.unlock();
-    };
-
-    /**
-     * 获取媒体链接
-     * @param sid
-     * @param quality
-     * @param privilege
-     * @returns {Promise<unknown>}
-     */
-    getMediaSrc = async (media, quality = 2, privilege = 2) => {
-        return await fetchJSON(`${API.src}?sid=${media.id}&quality=${quality}&privilege=${privilege}`).then(res => res.cdns[0]);
+        return await this.turn('next', playMode);
     };
 }

@@ -133,7 +133,7 @@ const PrevBtn = styled(PlayerBtn).attrs({
     className: 'prev-btn',
 })`
   margin-right: 0;
-  margin-left: auto;
+  //margin-left: auto;
   padding: 8px;
 `;
 
@@ -207,6 +207,10 @@ const ListBtn = styled(PlayerBtn).attrs({
   padding: 4px;
 `;
 
+const DurationBar = styled.div`
+
+`;
+
 const getPlayModeStr = (mode) => {
     switch (mode) {
         case 0:
@@ -268,13 +272,13 @@ export const Player = function() {
 
     // 展开音量调节按钮
     const handleOnMouseEnterVolumeBox = useCallback(debounce(() => {
-        songList.length !== 0 && setShowVolume(true);
-    }, 100), [songList, showVolume]);
+        setShowVolume(true);
+    }), [songList, showVolume]);
 
     // 隐藏音量调节按钮
     const handleOnMouseLeaveVolumeBox = useCallback(debounce(() => {
         setShowVolume(false);
-    }, 100), [showVolume]);
+    }), [showVolume]);
 
     const handleOnClickVolumeBtn = useCallback(() => {
         setShowVolume(false);
@@ -320,7 +324,7 @@ export const Player = function() {
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const {command = '', from = ''} = message;
             if (from !== 'playerBackground') return true;
-
+            //console.info(message);
             if (command === 'ended') {
                 return true;
             } else if (command === 'pause') { // 暂停或播放结束
@@ -372,12 +376,12 @@ export const Player = function() {
                         onClick={() => song ? handleOnClickCover(song) : null}
                     />
                 </a>
-                {/*<StarBox>*/}
-                {/*    <StarBtn disabled={songList.length === 0} icon="star" size={14}/>*/}
-                {/*    <StarList>*/}
+                <StarBox>
+                    <StarBtn disabled={songList.length === 0} icon="star" size={14}/>
+                    <StarList>
 
-                {/*    </StarList>*/}
-                {/*</StarBox>*/}
+                    </StarList>
+                </StarBox>
                 <PrevBtn disabled={songList.length <= 1} icon="prev" size={14} onClick={handleOnClickPrevBtn}/>
                 <PlayBtn disabled={songList.length === 0} size={30} icon={song && song.playing ? 'pause' : 'play'} onClick={handleOnClickPlayBtn}/>
                 <NextBtn disabled={songList.length <= 1} icon="next" size={14} onClick={handleOnClickNextBtn}/>

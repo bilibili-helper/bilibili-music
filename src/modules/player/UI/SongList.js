@@ -265,7 +265,6 @@ export const SongList = function({show, setShow, song: s}) {
                 setSong(message.song);
             } else if ((command === 'addSongSuccessfully' || command === 'deleteSongSuccessfully' || command === 'modifySongListSuccessfully')) {
                 setSong(message.song);
-                console.info(message);
                 setSongList(message.songList);
             }
             sendResponse();

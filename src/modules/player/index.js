@@ -25,6 +25,7 @@ export class Player extends Feature {
         this.player = null;
         this.controller = null; // 当前播放列表
         this.config = {};
+        this.broadcastInterval = null;
     }
 
     addListener = () => {
@@ -54,7 +55,6 @@ export class Player extends Feature {
                 });
             } else if (command === 'setSongList' && message.songList) { // 设置媒体列表，覆盖
                 await this.controller.setMediaList(message.songList);
-                await this.controller.play();
                 chrome.runtime.sendMessage({
                     command: 'modifySongListSuccessfully',
                     from: 'playerBackground',
@@ -71,7 +71,7 @@ export class Player extends Feature {
                     songList: this.controller.getMediaList(),
                 });
             } else if (command === 'addSong' && message.song) { // 添加媒体到播放列表
-                await this.controller.add(message.song);
+                await this.controller.addSong(message.song);
                 const mediaList = this.controller.getMediaList();
                 chrome.runtime.sendMessage({
                     command: 'addSongSuccessfully',
@@ -84,9 +84,9 @@ export class Player extends Feature {
                 const targetMedia = this.controller.get(message.song.id);
                 // 当删除正在播放且播放列表中项目数大于1时切到下一个媒体
                 if (targetMedia && targetMedia.playing && this.controller.map.size > 1) {
-                    await this.controller.turnNext(this.config.playMode);
+                    await this.controller.turnNext(1);
                 }
-                await this.controller.delete(message.song);
+                await this.controller.deleteSong(message.song);
                 chrome.runtime.sendMessage({
                     command: 'deleteSongSuccessfully',
                     from: 'playerBackground',
@@ -121,7 +121,6 @@ export class Player extends Feature {
         } else {
             this.controller = new MediaController(this.player, [], true);
         }
-        console.info(this.controller);
     };
 
     initConfig = () => {
@@ -142,6 +141,7 @@ export class Player extends Feature {
     initPlayer = () => {
         this.config = this.initConfig();
         this.player = new Audio();
+        window.player = this.player;
         this.player.volume = this.config.volume;
 
         // 捕获错误
@@ -185,6 +185,7 @@ export class Player extends Feature {
                 song: this.controller.getCurrentMedia(),
                 songList: this.controller.getMediaList(),
             });
+            clearInterval(this.broadcastInterval);
         });
 
         // 播放
@@ -196,6 +197,14 @@ export class Player extends Feature {
                 song: this.controller.getCurrentMedia(),
                 songList: this.controller.getMediaList(),
             });
+            this.broadcastInterval = setInterval(() => {
+                chrome.runtime.sendMessage({
+                    command: 'playState',
+                    from: 'playerBackground',
+                    currentTime: this.player.currentTime,
+                    duration: this.player.duration,
+                });
+            }, 1000);
         });
 
         //// 正在播放
