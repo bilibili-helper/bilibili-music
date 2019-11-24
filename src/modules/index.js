@@ -11,6 +11,7 @@ import {PopupAnchor} from 'Modules/popupAnchor';
 import {Player} from 'Modules/Player';
 import {Home} from 'Modules/home';
 import {Login} from 'Modules/login';
+import {SongViewer} from 'Modules/songViewer';
 
 export const Features = {
     GoogleAnalytics,
@@ -20,4 +21,5 @@ export const Features = {
     Player,
     Home,
     Login,
+    SongViewer,
 };

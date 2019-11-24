@@ -42,7 +42,7 @@ export class Feature {
     get store() {
         const res = store.get(this.dataStoreName);
         if (res) { return res; } else {
-            store.set(`in-module-${this.name}`, undefined);
+            store.set(`${this.dataStoreName}`, undefined);
             return undefined;
         }
     }
@@ -50,6 +50,19 @@ export class Feature {
     set store(v) {
         store.set(this.dataStoreName, v);
     }
+
+    getSubStore(subStoreName) {
+        const res = store.get(`${this.dataStoreName}-${subStoreName}`);
+        if (res) { return res; } else {
+            store.set(`${this.dataStoreName}-${subStoreName}`, undefined);
+            return undefined;
+        }
+    }
+
+    setSubStore(subStoreName, v) {
+        store.set(`${this.dataStoreName}-${subStoreName}`, v);
+    }
+
 
     get storage() {
         return new Promise((resolve) => {

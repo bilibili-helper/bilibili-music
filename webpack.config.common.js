@@ -72,7 +72,7 @@ module.exports = {
     node: {
         global: false,
     },
-    devtool: false,
+    devtool: 'source-map',
     watchOptions: {
         aggregateTimeout: 1000, // milliseconds
         poll: 1000,

@@ -5,7 +5,18 @@
  */
 import PropTypes from 'prop-types';
 import React, {useCallback} from 'react';
-import styled from 'styled-components';
+import styled, {keyframes} from 'styled-components';
+
+const fadeIn = keyframes`
+  0% {
+    opacity: 0;
+    transform: translate(0, 10px);
+  }
+  100% {
+    transform: translate(0, 0px);
+    opacity: 1;
+  }
+`;
 
 const Wrapper = styled.div.attrs({
     id: 'banner',
@@ -19,6 +30,11 @@ const Wrapper = styled.div.attrs({
   overflow: auto;
   box-shadow: inset 0px 0px 0px #999;
   transition: box-shadow 300ms, background-color 300ms;
+  animation-name: ${fadeIn};
+  animation-duration: 300ms;
+  animation-fill-mode: backwards;
+  animation-timing-function: ease-out;
+  will-change: box-shadow, background-color;
   
   &:hover {
     box-shadow: rgba(153, 153, 153, 0.5) 0px 0px 8px inset;
@@ -41,7 +57,6 @@ const Wrapper = styled.div.attrs({
     width: 100%;
     cursor: pointer;
     border-radius: 8px;
-    
       
     &:last-of-type {
       margin-right: 0;
@@ -55,6 +70,7 @@ const Wrapper = styled.div.attrs({
       -webkit-user-drag: none;
       transition: box-shadow 300ms;
       box-shadow: rgba(191, 191, 191, 0.5) 0px 3px 6px;
+      will-change: transition;
     }
   }
 `;

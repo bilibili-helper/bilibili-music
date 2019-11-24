@@ -22,6 +22,8 @@ const Wrapper = styled.div.attrs({id: 'home'})`
   }
 `;
 
+let initialized = false;
+
 export const Home = function() {
     const [data, setData] = useState({});
     const handleOnDataChange = useCallback((message, sender, sendResponse) => {
@@ -36,7 +38,9 @@ export const Home = function() {
         return true;
     }, [data]);
     useEffect(() => {
-        chrome.runtime.sendMessage({command: 'getData'}, (res) => {
+        if (initialized) return;
+        initialized = true;
+        chrome.runtime.sendMessage({command: 'getData', from: 'home'}, (res) => {
             setData(res);
         });
         chrome.runtime.onMessage.addListener(handleOnDataChange);

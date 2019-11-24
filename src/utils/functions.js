@@ -139,3 +139,5 @@ export const isBiggerThan = (a, b) => {
     // Otherwise they are the same.
     return 0;
 };
+
+export const createRandomInt = (start, length) => Math.floor((Math.random() * length) + start)
