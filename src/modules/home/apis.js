@@ -19,7 +19,6 @@ export default {
     starSongMenu: 'https://www.bilibili.com/audio/music-service-c/web/collect/menu', // 收藏歌单
 
     // about song
-    src: 'https://www.bilibili.com/audio/music-service-c/web/url', // 获取媒体url
     basic: 'https://www.bilibili.com/audio/music-service-c/web/song/info', // 基本信息
     tags: 'https://www.bilibili.com/audio/music-service-c/web/tag/song', // tag标签
     members: 'https://www.bilibili.com/audio/music-service-c/web/member/song', // 媒体创作人员名单

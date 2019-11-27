@@ -6,21 +6,21 @@
 import {UI} from 'Libs/UI';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {SongViewer} from './SongViewer';
+import {Viewer} from './Viewer';
 
-export class SongViewerUI extends UI {
+export class MediaViewerUI extends UI {
     constructor() {
         super({
-            name: 'songViewer',
-            dependencies: ['popupAnchor'],
+            name: 'mediaViewer',
+            dependencies: ['player'],
         });
     }
 
-    load = ([popupAnchor]) => {
+    load = ([controllerAnchor]) => {
         return new Promise(resolve => {
             const wrapper = document.createElement('div');
-            popupAnchor.appendChild(wrapper);
-            ReactDOM.render(<SongViewer/>, wrapper, resolve);
+            controllerAnchor.appendChild(wrapper);
+            ReactDOM.render(<Viewer/>, wrapper, resolve);
         });
     };
 }

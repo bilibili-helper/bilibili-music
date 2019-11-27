@@ -6,3 +6,4 @@
 // 导出常量
 export * from './functions';
 export * from './https';
+export * from './cookies';

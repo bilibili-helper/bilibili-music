@@ -20,7 +20,9 @@ export class PlayerUI extends UI {
         return new Promise(resolve => {
             const wrapper = document.createElement('div');
             popupAnchor.appendChild(wrapper);
-            ReactDOM.render(<Player/>, wrapper, resolve);
+            ReactDOM.render(<Player/>, wrapper, () => {
+                resolve(document.querySelector('#player'));
+            });
         });
     };
 }

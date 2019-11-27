@@ -23,7 +23,6 @@ const SongListWrapper = styled.div.attrs({
   transform: translate(0px, 500px);
   transition: transform 300ms;
   will-change: transform, backdrop-filter;
-  z-index: -1;
   
   @supports (backdrop-filter: blur(30px)) {
     backdrop-filter: blur(30px);
@@ -102,11 +101,11 @@ const List = styled.div`
   }
   
   .song-list-item {
-    position: relative;
     display: flex;
     justify-content: flex-start;
     align-items: center;
     padding: 4px 4px 4px 16px;
+    height: 24px;
     line-height: 16px;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -171,18 +170,20 @@ const ActionBtn = styled(Icon)`
   padding: 6px;
   border-radius: 4px;
   color: #999;
-  opacity: 0;
+  display: none;
   cursor: pointer;
-  background-color: transparent;
-  transition: background-color 300ms, color 300ms;
-  will-change: color, background-color;
   
-  &:hover {
+  .song-list-item:hover & {
+    display: block;
+  }
+  
+  .song-list-item:hover &:hover {
     color: #666;
     background-color: rgba(0, 0, 0, 0.1);
   }
   
   &:active {
+    display: block;
     color: #333;
     background-color: rgba(0, 0, 0, 0.2);
   }
@@ -255,7 +256,9 @@ export const SongList = function({show, setShow, song: s}) {
             const {command = '', from = ''} = message;
             if (from !== 'playerBackground') return true;
 
-            if (command === 'pause') { // 暂停或播放结束
+            if (command === 'hideMediaList') {
+                setShow(false);
+            } else if (command === 'pause') { // 暂停或播放结束
                 setSong(message.song);
                 setSongList(message.songList);
             } else if (command === 'play') {

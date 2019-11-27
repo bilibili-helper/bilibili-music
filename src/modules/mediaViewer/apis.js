@@ -12,4 +12,5 @@ export default {
     uploaderBasic: 'https://www.bilibili.com/audio/music-service-c/web/user/info', // 发布者卡片信息
     uploadData: 'https://www.bilibili.com/audio/music-service-c/web/stat/user', // 发布者播放数粉丝数
     uploadHotRank: 'https://www.bilibili.com/audio/music-service-c/web/song/upper-hit', // 发布者热门媒体列表
+    star: 'https://www.bilibili.com/audio/music-service-c/web/collections/song', // 收藏
 };

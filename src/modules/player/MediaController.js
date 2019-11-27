@@ -3,15 +3,15 @@
  * Create: 2019/11/21
  * Description:
  */
-import API from 'Modules/player/apis';
+import API from './apis';
 import {createRandomInt, fetchJSON} from 'Utils';
 
 export class MediaController {
-    constructor(player, map = [], needInit = false) {
+    constructor(player, map = [], needInit = false, startMedia = null, orderedEndMedia = null, randomEndMedia = null) {
         this.player = player;
-        this.startMedia = null;
-        this.orderedEndMedia = null;
-        this.randomEndMedia = null;
+        this.startMedia = startMedia;
+        this.orderedEndMedia = orderedEndMedia;
+        this.randomEndMedia = randomEndMedia;
 
         this.mediaListCache = null; // 生成媒体渲染列表的缓存数据，每次更新后应该清理这个缓存
 
@@ -21,10 +21,6 @@ export class MediaController {
         this.lockCommand = null; // 锁住的指令
 
         this.__initBoundMedias();
-    }
-
-    toString() {
-        return this.map.toString();
     }
 
     get(sid) {
@@ -262,7 +258,7 @@ export class MediaController {
             this.__unlock();
         } else {
             this.__unlock();
-            return Promise.reject('没有可暂停的媒体');
+            return Promise.resolve('没有可暂停的媒体');
         }
     };
 

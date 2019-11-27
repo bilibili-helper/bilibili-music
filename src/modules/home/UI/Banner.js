@@ -46,7 +46,7 @@ const Wrapper = styled.div.attrs({
   &:active {
       background-color: #eee;
     }
-
+	//
   &::-webkit-scrollbar {
     display: none;
   }  
@@ -99,16 +99,16 @@ export const Banner = function({data = []}) {
         <Wrapper>
             {data.map((item) => {
                 return (
-                    <div className="banner-item" key={item.bannerId}>
-                        <a
-                            href={dealWithCoverSchema(item.schema)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={() => handleOnClickBanner(item.bannerId)}
-                        >
-                            <img src={item.bannerImgUrl}/>
-                        </a>
-                    </div>
+                    <a
+                        key={item.bannerId}
+                        className="banner-item"
+                        href={dealWithCoverSchema(item.schema)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => handleOnClickBanner(item.bannerId)}
+                    >
+                        <img src={item.bannerImgUrl}/>
+                    </a>
                 );
             })}
         </Wrapper>

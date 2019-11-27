@@ -1,16 +1,15 @@
-/* global process */
 /**
  * Author: DrowsyFlesh
- * Create: 2018/12/9
+ * Create: 2019/11/20
  * Description:
  */
 import {Feature} from 'Libs/feature';
-//import {__, createTab, hasNewVersion, version, getURL} from 'Utils';
+import {MediaDetail} from './MediaDetail';
 
-export class Home extends Feature {
+export class MediaViewer extends Feature {
     constructor() {
         super({
-            name: 'home',
+            name: 'mediaViewer',
             kind: 'popup',
             dependencies: ['dataManager', 'popupAnchor', 'googleAnalytics'],
             settings: {
@@ -20,5 +19,9 @@ export class Home extends Feature {
                 toggle: false,
             },
         });
+    }
+
+    launch = () => {
+        window.mediaDetail = new MediaDetail();
     }
 }

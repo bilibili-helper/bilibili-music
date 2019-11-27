@@ -11,20 +11,6 @@ import {throttle, debounce} from 'lodash';
 
 const EMPTY_IMAGE_SRC = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
-const fadeIn = keyframes`
-  0% {
-    opacity: 0;
-    transform: translate(0, 10px);
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    transform: translate(0, 0px);
-    opacity: 1;
-  }
-`;
-
 const Wrapper = styled.div.attrs({'id': 'player'})`
   position: absolute;
   right: 0;
@@ -32,10 +18,6 @@ const Wrapper = styled.div.attrs({'id': 'player'})`
   left: 0;
   height: 42px;
   z-index: 10;
-  animation-name: ${fadeIn};
-  animation-duration: 200ms;
-  animation-fill-mode: backwards;
-  animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
 `;
 
 const PlayerWrapper = styled.div.attrs({
@@ -56,31 +38,60 @@ const PlayerWrapper = styled.div.attrs({
   z-index: 1;
 `;
 
-const Cover = styled(Image)`
+const CoverBox = styled.div`
   position: absolute;
   width: 64px;
   height: 64px;
   bottom: 6px;
   left: 6px;
-  //margin: 0px auto -80px 6px;
-  margin-bottom: -70px;
+  transform: translate(0, 70px);
   border-radius: 4px;
   background-color: #ddd;
   box-shadow: rgba(0, 0, 0, 0.5) 0px 2px 6px -2px;
-  opacity: 0;
   cursor: pointer;
   -webkit-user-drag: none;
-  transition: opacity 300ms, margin 300ms;
+  overflow: hidden;
+  transition: transform 300ms;
+  will-change: transition;
   
   &.show {
-    opacity: 1;
-    margin-bottom: 0px;
+    transform: translate(0, 0);
   }
   
   &.expand {
-    opacity: 0;
-    margin-top: 6px;
-    margin-bottom: -70px;
+    transform: translate(0, 70px);
+  }
+`;
+
+const Cover = styled(Image)`
+  width: 64px;
+  height: 64px;
+`;
+
+const StarBtn = styled(Icon).attrs({
+    className: 'star-btn',
+})`
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  padding: 4px;
+  border-radius: 4px 0 0 0;
+  text-shadow: rgba(255, 255, 255, 0.7) 0px 0px 4px;
+  color: rgba(142, 142, 142, 0.5);
+  cursor: pointer;
+  transition: color 300ms, opacity 300ms;
+  
+  &.collected {
+    color: #ff8300;
+  }
+  
+  &:hover {
+    opacity: 0.5;
+  }
+  
+  &[disabled] {
+    color: #444;
+    cursor: not-allowed;
   }
 `;
 
@@ -97,7 +108,7 @@ const PlayerBtn = styled(Icon)`
     color: #666;
   }
   
-  &:active {
+  &:active, &.active {
     color: #555;
   }
   
@@ -107,20 +118,36 @@ const PlayerBtn = styled(Icon)`
   }
 `;
 
-const StarBox = styled.div`
+/*const StarBox = styled.div`
   margin-left: auto;
   position: relative;
-`;
+  width: 30px;
+  height: 30px;
+  //transform: translate3d(0px, 0px, 0px);
+  z-index: 1;
+  user-select: none;
+`;*/
 
-const StarList = styled.div`
+/*const StarList = styled.div`
+  position: absolute;
+  bottom: 30px;
+  left: calc(-50% + 15px);
+  padding: 4px 8px;
+  width: 100px;
+  border-radius: 4px;
+  background: #222;
+  box-shadow: rgba(0, 0, 0, 0.5) 0px 2px 2px;
+  color: #eee;
+  visibility: hidden;
 
-`;
+  &.show {
+    visibility: visible;
+  }
 
-const StarBtn = styled(PlayerBtn).attrs({
-    className: 'star-btn',
-})`
-  padding: 4px;
-`;
+  .star-list-item {
+    cursor: pointer;
+  }
+`;*/
 
 const PlayBtn = styled(PlayerBtn).attrs({
     className: 'play-btn',
@@ -133,7 +160,7 @@ const PrevBtn = styled(PlayerBtn).attrs({
     className: 'prev-btn',
 })`
   margin-right: 0;
-  //margin-left: auto;
+  margin-left: auto;
   padding: 8px;
 `;
 
@@ -147,44 +174,43 @@ const NextBtn = styled(PlayerBtn).attrs({
 
 const VolumeBox = styled.div`
   position: relative;
+  width: 30px;
+  height: 30px;
+  transform: translate3d(0px, 0px, 0px);
 `;
 
 const VolumeBar = styled.input.attrs({
     className: 'volume-bar',
 })`
+  -webkit-appearance: none;
   position: absolute;
   bottom: 25px;
-  left: calc(-50% + 18px);
-  width: 20px;
-  height: 100px;
-  //transform: translate(0px, 140px);
-  -webkit-appearance: slider-vertical;
-  //opacity: 0;
+  left: calc(-50% + 20px);
+  margin: 0;
+  width: 100px;
+  height: 20px;
+  padding: 0px 1px;
+  border-radius: 10px;
+  background-color: #212121;
+  outline: none;
   user-select: none;
-  transition: opacity 200ms, transform 200ms;
-  display: none;
+  transform-origin: 10px;
+  transform: rotate(-90deg);
+  visibility: hidden;
   
   &.show {
-    display: block;
-    //opacity: 1;
-    //transform: translate(0px, 0px);
+    visibility: visible;
   }
   
   &::-webkit-slider-thumb {
-    background-color: #222;
-    border: none;
     cursor: pointer;
-  }
-  
-  &::-webkit-slider-container {
-    background-color: transparent;
   }
   
   &::-webkit-slider-runnable-track {
     padding: 2px;
     border-radius: 30px; 
     background: #222;
-    box-shadow: rgba(0, 0, 0, 0.5) 0px 2px 2px;;
+    box-shadow: rgba(0, 0, 0, 0.5) 0px 2px 2px;
   }
 `;
 
@@ -230,19 +256,9 @@ export const Player = function() {
     const [songList, setSongList] = useState([]);
     const [showSongList, setShowSongList] = useState(false);
     const [muted, setMuted] = useState(false);
-
     const [showVolume, setShowVolume] = useState(false);
     const [volume, setVolume] = useState(1);
     const [playMode, setPlayMode] = useState(0);
-
-    const handleOnClickCover = useCallback((song) => {
-        chrome.runtime.sendMessage({
-            command: 'setGAEvent',
-            action: '点击-播放器',
-            category: '封面',
-            label: song.id,
-        });
-    }, []);
 
     // 播放/暂停按钮点击事件
     const handleOnClickPlayBtn = useCallback(() => {
@@ -280,6 +296,7 @@ export const Player = function() {
         setShowVolume(false);
     }), [showVolume]);
 
+    // 静音按钮
     const handleOnClickVolumeBtn = useCallback(() => {
         setShowVolume(false);
         chrome.runtime.sendMessage({
@@ -312,6 +329,7 @@ export const Player = function() {
     // 展开播放列表
     const handleOnClickSongListBtn = useCallback(() => {
         setShowSongList(!showSongList);
+        chrome.runtime.sendMessage({command: 'hideViewer', from: 'player'});
     }, [showSongList]);
 
     useEffect(() => {
@@ -324,7 +342,6 @@ export const Player = function() {
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const {command = '', from = ''} = message;
             if (from !== 'playerBackground') return true;
-            //console.info(message);
             if (command === 'ended') {
                 return true;
             } else if (command === 'pause') { // 暂停或播放结束
@@ -340,6 +357,9 @@ export const Player = function() {
                 setSongList(message.songList);
             } else if (command === 'volumechange') {
                 setVolume(message.volume);
+            } else if (command === 'collectedSongSuccessfully' || command === 'cancelCollectSongSuccessfully') {
+                const {song} = message;
+                setSong(song);
             }
             sendResponse();
             return true;
@@ -362,39 +382,20 @@ export const Player = function() {
         <Wrapper>
             <SongList show={showSongList} setShow={setShowSongList}/>
             <PlayerWrapper>
-                <a
-                    href={song ? `https://www.bilibili.com/audio/au${song.id}` : null}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    <Cover
-                        className={[
-                            song && song.cover ? 'show' : null,
-                        ]}
-                        alt={song ? song.title : null}
-                        src={song ? song.cover : EMPTY_IMAGE_SRC}
-                        onClick={() => song ? handleOnClickCover(song) : null}
-                    />
-                </a>
-                <StarBox>
-                    <StarBtn disabled={songList.length === 0} icon="star" size={14}/>
-                    <StarList>
-
-                    </StarList>
-                </StarBox>
                 <PrevBtn disabled={songList.length <= 1} icon="prev" size={14} onClick={handleOnClickPrevBtn}/>
                 <PlayBtn disabled={songList.length === 0} size={30} icon={song && song.playing ? 'pause' : 'play'} onClick={handleOnClickPlayBtn}/>
                 <NextBtn disabled={songList.length <= 1} icon="next" size={14} onClick={handleOnClickNextBtn}/>
                 <VolumeBox>
                     <VolumeBtn
                         icon={muted ? 'volume-muted' : 'volume'}
+                        className={showVolume ? 'active' : null}
                         onMouseEnter={handleOnMouseEnterVolumeBox}
                         onMouseLeave={handleOnMouseLeaveVolumeBox}
                         onClick={handleOnClickVolumeBtn}
                     />
                     <VolumeBar
                         ref={volumeRef}
-                        className={showVolume ? 'show' : ''}
+                        className={showVolume ? 'show' : null}
                         type="range"
                         max={1}
                         min={0}
@@ -405,10 +406,7 @@ export const Player = function() {
                         onMouseLeave={handleOnMouseLeaveVolumeBox}
                     />
                 </VolumeBox>
-                <PlayModeBtn
-                    icon={getPlayModeStr(playMode)}
-                    onClick={handleOnClickPlayModeBtn}
-                />
+                <PlayModeBtn icon={getPlayModeStr(playMode)} onClick={handleOnClickPlayModeBtn}/>
                 <ListBtn icon="list1" size={16} onClick={handleOnClickSongListBtn}/>
             </PlayerWrapper>
         </Wrapper>
