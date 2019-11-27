@@ -239,7 +239,8 @@ export const SongList = function({show, setShow, song: s}) {
     }, []);
 
     const handleOnClickTitle = useCallback((s) => {
-        chrome.runtime.sendMessage({command: 'viewSong', from: 'songList', sid: s.id});
+        chrome.runtime.sendMessage({command: 'viewMedia', from: 'player', sid: s.id});
+        chrome.runtime.sendMessage({command: 'hideMediaList', from: 'mediaViewer'});
     }, []);
 
     //useEffect(() => {

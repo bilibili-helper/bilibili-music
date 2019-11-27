@@ -195,6 +195,9 @@ const Wrapper = styled.div`
         text-overflow: ellipsis;
         word-break: keep-all;
         overflow: hidden;
+        &:hover {
+          text-decoration: underline;
+        }
       }
       
       .author {
@@ -205,7 +208,6 @@ const Wrapper = styled.div`
     }
   }
 `;
-
 
 const CloseBtn = styled(Icon)`
   position: absolute;
@@ -257,7 +259,6 @@ export const SongMenu = function({show, setShow, songMenu, collectedSongMenu}) {
     const [songList, setSongList] = useState([]);
     const [song, setSong] = useState(null);
     const [songMenuHasStar, setSongMenuHasStar] = useState(false); // 当前显示歌单是否被收藏
-
 
     useEffect(() => {
         const found = collectedSongMenu.find((m) => m.menuId === songMenu.menuId);
@@ -331,6 +332,11 @@ export const SongMenu = function({show, setShow, songMenu, collectedSongMenu}) {
             label: `歌单 ${songMenu.menuId}`,
         });
     }, [songMenu]);
+
+    const handleOnClickTitle = useCallback((s) => {
+        chrome.runtime.sendMessage({command: 'viewMedia', from: 'player', sid: s.id});
+        chrome.runtime.sendMessage({command: 'hideMediaList', from: 'mediaViewer'});
+    }, []);
 
     useEffect(() => {
         chrome.runtime.sendMessage({command: 'getSongList', from: 'slongListSection'}, ({song, songList}) => {
@@ -412,7 +418,7 @@ export const SongMenu = function({show, setShow, songMenu, collectedSongMenu}) {
                             onDoubleClick={(e) => handleOnDoubleClickPlaySong(e, s)}
                         >
                             <span className="index">{isPlaying ? <Icon icon="playing"/> : `${index + 1}.`}</span>
-                            <span className="title">{dealWithTitle(s.title)}</span>
+                            <span className="title" onClick={() => handleOnClickTitle(s)}>{s.title}</span>
                             {/*<span className="author">{song.author}</span>*/}
                             <AddBtn
                                 size={12}
@@ -429,7 +435,7 @@ export const SongMenu = function({show, setShow, songMenu, collectedSongMenu}) {
                 })}
             </ol>
         </Wrapper>
-    )
+    );
 };
 
 SongMenu.propTypes = {
@@ -437,4 +443,4 @@ SongMenu.propTypes = {
     collectedSongMenu: PropTypes.array,
     songMenu: PropTypes.array,
     setShow: PropTypes.func,
-}
+};

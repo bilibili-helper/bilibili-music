@@ -41,12 +41,39 @@ const CoverBox = styled.div`
   will-change: transition;
   z-index: 1;
   
+  &:hover {
+    .bilibili-music-icon-right-dashed {
+      opacity: 1;
+    }
+  }
+  
   &.show {
     transform: translate(0, 0);
   }
   
   &.expand {
     transform: translate(0, 70px);
+  }
+  
+  .bilibili-music-icon-right-dashed {
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    bottom: -20px;
+    left: -20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 26px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    transform: rotate(-90deg);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 200ms, transform 200ms;
+    &.show-viewer {
+      transform: rotate(90deg);
+    }
   }
 `;
 
@@ -67,6 +94,7 @@ const StarBtn = styled(Icon).attrs({
   text-shadow: rgba(255, 255, 255, 0.7) 0px 0px 4px;
   color: rgba(142, 142, 142, 0.5);
   cursor: pointer;
+  z-index: 1;
   transition: color 300ms, opacity 300ms;
   
   &.collected {
@@ -118,15 +146,47 @@ const Wrapper = styled.div.attrs({
       display: flex;
       flex-grow: 1;
       
-      .cover {
-        display: block;
-        width: 100px;
+      .cover-box {
+        position: relative;
         margin: 8px 14px 8px 8px;
+        width: 100px;
+        height: 100px;
         border-radius: 8px;
-        box-shadow: rgba(0, 0, 0, 0.5) 0px 2px 6px -2px;
-        user-select: none;
-        -webkit-user-drag: none;
+        overflow: hidden;
+      
+        .bilibili-music-icon-outLink {
+          position: absolute;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          left: 0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 100%;
+          height: 100%;
+          font-size: 32px!important;
+          background-color: rgba(0,0,0,0.5);
+          color: #fff;
+          opacity: 0;
+          transition: opacity 200ms;
+          
+          &:hover {
+            opacity: 1;
+          }
+        }
+      
+        .cover {
+          display: block;
+          width: 100px;
+          border-radius: 8px;
+          box-shadow: rgba(0, 0, 0, 0.5) 0px 2px 6px -2px;
+          user-select: none;
+          -webkit-user-drag: none;
+        }
       }
+      
+      
       
       .description {
         color: #333;
@@ -139,6 +199,9 @@ const Wrapper = styled.div.attrs({
           text-overflow: ellipsis;
         }
         .statistic {
+          span {
+            color: #666;
+          }
           margin: 4px 0;
         }
       }
@@ -209,6 +272,40 @@ const Section = styled.section`
 const IntroductionSection = styled(Section)`
   line-height: 22px;
   color: #333;
+  
+  h1 {
+    justify-content: space-between;
+    
+    button {
+      margin-right: -4px;
+      margin-left: 8px;
+      border: none;
+      border-radius: 2px;
+      background-color: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      cursor: pointer;
+      outline: none;
+      transition: opacity 300ms;
+      
+      &:hover {
+        opacity: 0.75;
+      }
+      
+      &:active {
+        opacity: 1;
+      }
+      .bilibili-music-icon-download {
+        vertical-align: text-bottom;
+        margin-left: -4px;
+        line-height: 20px;
+        font-size: 12px!important;
+      }
+    }
+  }
+  
+  pre {
+    white-space: pre-wrap;
+  }
 `;
 
 const MemberSection = styled(Section)`
@@ -226,7 +323,7 @@ const MemberSection = styled(Section)`
       span {
         flex-shrink: 0;
         margin-right: 6px;
-        color: #999;
+        color: #666;
       }
     }
   }
@@ -259,6 +356,13 @@ const LrcSection = styled(Section)`
       
       &:active {
         opacity: 1;
+      }
+      
+      .bilibili-music-icon-download {
+        vertical-align: text-bottom;
+        margin-left: -4px;
+        line-height: 20px;
+        font-size: 12px!important;
       }
     }
   }
@@ -295,10 +399,15 @@ export const Viewer = function() {
         chrome.runtime.sendMessage({
             command: 'collectSong',
             from: 'player',
-            sid: song.id,
+            sid: coverSong.id,
             cid: collected ? '' : userMenu[0].id,
         });
-    }, [song, userMenu]);
+        chrome.runtime.sendMessage({
+            command: 'setGAEvent',
+            action: '点击-播放器',
+            category: '收藏按钮',
+        });
+    }, [coverSong, userMenu]);
 
     // 封面点击
     const handleOnClickCover = useCallback(() => {
@@ -316,15 +425,39 @@ export const Viewer = function() {
         }
     }, [show, song, coverSong]);
 
-    const handleOnClickDownloadLRC = useCallback((song) => {
-        if (song) {
-            chrome.runtime.sendMessage({
-                command: 'downloadLrc',
-                from: 'mediaViewer',
-                song,
-            });
-        }
-    }, []);
+    // 点击下载歌词
+    const handleOnClickDownloadLRC = useCallback(() => {
+        chrome.runtime.sendMessage({
+            command: 'downloadLrc',
+            from: 'mediaViewer',
+            song,
+        });
+    }, [song]);
+
+    // 封面外链点击事件
+    const handleOnClickDetailCover = useCallback(() => {
+        chrome.runtime.sendMessage({
+            command: 'setGAEvent',
+            action: '点击-媒体详情页',
+            category: '封面',
+            label: song.id,
+        });
+    }, [song]);
+
+    // 下载媒体事件
+    const handleOnClickDownloadMedia = useCallback(() => {
+        chrome.runtime.sendMessage({
+            command: 'setGAEvent',
+            action: '点击-媒体详情页',
+            category: '下载媒体',
+            label: song.id,
+        });
+        chrome.runtime.sendMessage({
+            command: 'downloadMedia',
+            from: 'mediaViewer',
+            song,
+        });
+    }, [song]);
 
     useEffect(() => {
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -369,13 +502,11 @@ export const Viewer = function() {
     return (
         <React.Fragment>
             <CoverBox className={coverSong && coverSong.cover ? 'show' : null}>
-
                 <CoverBtn
                     alt={coverSong ? coverSong.title : null}
                     src={coverSong ? coverSong.cover : EMPTY_IMAGE_SRC}
                     onClick={() => coverSong ? handleOnClickCover() : null}
                 />
-
                 <StarBtn
                     icon="star"
                     size={14}
@@ -383,6 +514,7 @@ export const Viewer = function() {
                     disabled={!coverSong}
                     onClick={() => handleOnClickStarBtn(coverSong && coverSong.collectIds.length > 0)}
                 />
+                <i className={`bilibili-music-iconfont bilibili-music-icon-right-dashed ${show ? 'show-viewer' : null}`}/>
             </CoverBox>
             <Wrapper className={show ? 'show' : null}>
                 <CloseBtn icon="close" onClick={() => setShow(false)}/>
@@ -390,11 +522,14 @@ export const Viewer = function() {
                     <header>
                         <div className="menu-info">
                             <a
+                                className="cover-box"
                                 href={`https://www.bilibili.com/audio/au${song.id}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                onClick={handleOnClickDetailCover}
                             >
                                 <Image className="cover" src={song.cover || DEFAULT_COVER}/>
+                                <Icon icon="outLink"/>
                             </a>
                             <div className="description">
                                 <p className="title">{song.title}</p>
@@ -405,7 +540,9 @@ export const Viewer = function() {
                         </div>
                     </header>
                     <IntroductionSection>
-                        <h1>简介</h1>
+                        <h1>简介
+                            <button onClick={handleOnClickDownloadMedia}><Icon icon="download"/>下载歌曲</button>
+                        </h1>
                         <pre>{song.intro}</pre>
                     </IntroductionSection>
                     <TagSection>分类：{song.tags.map(({info}) => info).join('、')}</TagSection>
@@ -419,9 +556,9 @@ export const Viewer = function() {
                             ))}
                         </ul>
                     </MemberSection>
-                    {song.lyric && song.lrcData && song.lrcData.length > 0 &&song.lrcData[0].length > 0 && <LrcSection>
+                    {song.lyric && song.lrcData && song.lrcData.length > 0 && song.lrcData[0].length > 0 && <LrcSection>
                         <h1>歌词
-                            <button onClick={() => handleOnClickDownloadLRC(song)}>Download LRC</button>
+                            <button onClick={handleOnClickDownloadLRC}><Icon icon="download"/>Download LRC</button>
                         </h1>
                         {song.lrcData.map((sentence, index) => <p key={index}>{sentence[3]}</p>)}
                     </LrcSection>}

@@ -69,6 +69,8 @@ export class MediaDetail {
                 });
             } else if (command === 'downloadLrc' && message.song) {
                 this.downloadLrc(message.song);
+            } else if (command === 'downloadMedia' && message.song) {
+                this.downloadMedia(message.song);
             }
             return true;
         });
@@ -160,12 +162,41 @@ export class MediaDetail {
 
     downloadLrc = (song) => {
         this.__lock('downloadLrc');
-        const {author, title, lyric: url} = song;
+        const {author, title, lyric: url, id} = song;
         chrome.downloads.download({
             saveAs: true,
             url,
-            filename: `${title}-${author}.lrc`,
+            filename: `${author}/${title}-${id}.lrc`,
+        });
+        chrome.runtime.sendMessage({
+            command: 'setGAEvent',
+            action: '点击-媒体详情页',
+            category: '下载歌词',
         });
         this.__unlock();
-    }
+    };
+
+    downloadMedia = (media) => {
+        this.__lock('downloadMedia');
+        const {author, title, id} = media;
+        this.__getMediaSrc(media).then(src => {
+            chrome.downloads.download({
+                saveAs: true,
+                url: src,
+                filename: `${author}/${title}-${id}.mp3`,
+            });
+        });
+        this.__unlock();
+    };
+
+    /**
+     * 获取媒体链接
+     * @param sid
+     * @param quality
+     * @param privilege
+     * @returns {Promise<unknown>}
+     */
+    __getMediaSrc = async (media, quality = 2, privilege = 2) => {
+        return await fetchJSON(`${API.src}?sid=${media.id}&quality=${quality}&privilege=${privilege}`).then(res => res.cdns[0]);
+    };
 }
