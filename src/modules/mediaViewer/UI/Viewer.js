@@ -92,7 +92,7 @@ const StarBtn = styled(Icon).attrs({
   margin: 0 4px 4px 0;
   border-radius: 4px 0 0 0;
   text-shadow: rgba(255, 255, 255, 0.7) 0px 0px 4px;
-  color: rgba(142, 142, 142, 0.5);
+  color: rgba(55,55,55,0.75);
   cursor: pointer;
   z-index: 1;
   transition: color 300ms, opacity 300ms;
