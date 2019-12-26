@@ -5,6 +5,7 @@
  */
 export default {
     basic: 'https://www.bilibili.com/audio/music-service-c/web/song/info', // 基本信息
+    appbBasic: 'https://api.bilibili.com/audio/music-service-c/songs/playing', // 基本信息 app中使用
     tags: 'https://www.bilibili.com/audio/music-service-c/web/tag/song', // tag标签
     members: 'https://www.bilibili.com/audio/music-service-c/web/member/song', // 媒体创作人员名单
     starStatus: 'https://www.bilibili.com/audio/music-service-c/web/collections/songs-coll', // 收藏状态
@@ -13,4 +14,5 @@ export default {
     uploadData: 'https://www.bilibili.com/audio/music-service-c/web/stat/user', // 发布者播放数粉丝数
     uploadHotRank: 'https://www.bilibili.com/audio/music-service-c/web/song/upper-hit', // 发布者热门媒体列表
     star: 'https://www.bilibili.com/audio/music-service-c/web/collections/song', // 收藏
+    src: 'https://www.bilibili.com/audio/music-service-c/web/url',
 };

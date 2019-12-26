@@ -233,9 +233,6 @@ const ListBtn = styled(PlayerBtn).attrs({
   padding: 4px;
 `;
 
-const DurationBar = styled.div`
-
-`;
 
 const getPlayModeStr = (mode) => {
     switch (mode) {
@@ -250,11 +247,8 @@ const getPlayModeStr = (mode) => {
     }
 };
 
-export const Player = function() {
+export const Player = function({song, songList, showSongList, setShowSongList}) {
     const volumeRef = useRef(null);
-    const [song, setSong] = useState(null);
-    const [songList, setSongList] = useState([]);
-    const [showSongList, setShowSongList] = useState(false);
     const [muted, setMuted] = useState(false);
     const [showVolume, setShowVolume] = useState(false);
     const [volume, setVolume] = useState(1);
@@ -289,7 +283,7 @@ export const Player = function() {
     // 展开音量调节按钮
     const handleOnMouseEnterVolumeBox = useCallback(debounce(() => {
         setShowVolume(true);
-    }), [songList, showVolume]);
+    }), [showVolume]);
 
     // 隐藏音量调节按钮
     const handleOnMouseLeaveVolumeBox = useCallback(debounce(() => {
@@ -342,34 +336,12 @@ export const Player = function() {
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const {command = '', from = ''} = message;
             if (from !== 'playerBackground') return true;
-            if (command === 'ended') {
-                return true;
-            } else if (command === 'pause') { // 暂停或播放结束
-                setSong(message.song);
-                setSongList(message.songList);
-            } else if (command === 'play') {
-                setSong(message.song);
-                setSongList(message.songList);
-            } else if (command === 'loadstart') {
-                setSong(message.song);
-            } else if ((command === 'addSongSuccessfully' || command === 'deleteSongSuccessfully' || command === 'modifySongListSuccessfully') && message.songList) {
-                setSong(message.song);
-                setSongList(message.songList);
-            } else if (command === 'volumechange') {
+
+            if (command === 'volumechange') {
                 setVolume(message.volume);
-            } else if (command === 'collectedSongSuccessfully' || command === 'cancelCollectSongSuccessfully') {
-                const {song} = message;
-                setSong(song);
             }
             sendResponse();
             return true;
-        });
-        chrome.runtime.sendMessage({command: 'getSongList', from: 'player'}, ({songList}) => {
-            setSongList(songList);
-        });
-        // 初始化歌曲
-        chrome.runtime.sendMessage({command: 'getCurrentSong', from: 'player'}, (song) => {
-            setSong(song);
         });
         // 初始化音量
         chrome.runtime.sendMessage({command: 'getConfig', from: 'player'}, (config) => {
@@ -380,11 +352,25 @@ export const Player = function() {
 
     return (
         <Wrapper>
-            <SongList show={showSongList} setShow={setShowSongList}/>
             <PlayerWrapper>
-                <PrevBtn disabled={songList.length <= 1} icon="prev" size={14} onClick={handleOnClickPrevBtn}/>
-                <PlayBtn disabled={songList.length === 0} size={30} icon={song && song.playing ? 'pause' : 'play'} onClick={handleOnClickPlayBtn}/>
-                <NextBtn disabled={songList.length <= 1} icon="next" size={14} onClick={handleOnClickNextBtn}/>
+                <PrevBtn
+                    size={14}
+                    icon="prev"
+                    disabled={songList.length <= 1}
+                    onClick={handleOnClickPrevBtn}
+                />
+                <PlayBtn
+                    size={30}
+                    icon={song && song.playing ? 'pause' : 'play'}
+                    disabled={songList.length === 0}
+                    onClick={handleOnClickPlayBtn}
+                />
+                <NextBtn
+                    size={14}
+                    icon="next"
+                    disabled={songList.length <= 1}
+                    onClick={handleOnClickNextBtn}
+                />
                 <VolumeBox>
                     <VolumeBtn
                         icon={muted ? 'volume-muted' : 'volume'}
@@ -407,7 +393,7 @@ export const Player = function() {
                     />
                 </VolumeBox>
                 <PlayModeBtn icon={getPlayModeStr(playMode)} onClick={handleOnClickPlayModeBtn}/>
-                <ListBtn icon="list1" size={16} onClick={handleOnClickSongListBtn}/>
+                <ListBtn icon="list" size={16} onClick={handleOnClickSongListBtn}/>
             </PlayerWrapper>
         </Wrapper>
     );

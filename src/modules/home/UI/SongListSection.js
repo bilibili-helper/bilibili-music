@@ -79,6 +79,7 @@ const Wrapper = styled.div.attrs({
     
     &.simple {
       flex-direction: row;
+      //flex-wrap: wrap;
       width: 100%;
       overflow: auto hidden;
       
@@ -86,15 +87,17 @@ const Wrapper = styled.div.attrs({
         display: none;
       }
       .song-list-item {
-        margin-right: 4px;
+        margin-right: 8px;
         margin-bottom: 0;
-        width: 103px;
+        width: 93px;
         
         &:last-of-type {
           margin-right: 0;
         }
         img {
           margin-right: 0;
+          width: 75px;
+          height: 75px;
         }
       }
     }
@@ -237,7 +240,7 @@ const dealWithTitle = (title) => {
     return title;
 };
 
-export const SongListSection = function({topic, menuList = [], simple = false, setSongMenu, setShow}) {
+export const SongListSection = function({topic, menuList = [], simple = false, setSongMenuShow}) {
     const [songMenuList, setSongMenuList] = useState(menuList);
     const [loading, setLoading] = useState(false);
 
@@ -248,10 +251,9 @@ export const SongListSection = function({topic, menuList = [], simple = false, s
     // 歌单被点击
     const handleOnClickSongMenu = useCallback((item) => {
         setLoading(true);
-        chrome.runtime.sendMessage({command: 'getSongMenu', from: 'songListSection', sid: item.menuId}, (res) => {
+        chrome.runtime.sendMessage({command: 'getSongMenu', from: 'songListSection', songMenu: item}, (res) => {
             setLoading(false);
-            setShow(true);
-            setSongMenu({...item, data: res});
+            setSongMenuShow(true);
         });
         chrome.runtime.sendMessage({
             command: 'setGAEvent',
@@ -263,10 +265,10 @@ export const SongListSection = function({topic, menuList = [], simple = false, s
 
     return (
         <React.Fragment>
-            <Loading className={loading ? 'show' : ''}/>
+            {/*<Loading className={loading ? 'show' : ''}/>*/}
             <Wrapper>
                 {topic && (songMenuList && songMenuList.length !== 0 && (!!songMenuList[0].snum || !!songMenuList[0].song)) && (
-                    <header>{topic}{simple && <Icon icon="right-dashed" size="12"/>}</header>
+                    <header>{topic}{simple && songMenuList.length > 3 && <Icon icon="right-dashed" size="12"/>}</header>
                 )}
                 <div className={['menu-list', simple ? 'simple' : ''].join(' ')}>
                     {songMenuList.map((item, index) => {
@@ -297,5 +299,5 @@ SongListSection.propTypes = {
     menuList: PropTypes.array,
     simple: PropTypes.bool,
     setSongMenu: PropTypes.func,
-    setShow: PropTypes.func,
+    setSongMenuShow: PropTypes.func,
 };

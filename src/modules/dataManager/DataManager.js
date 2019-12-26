@@ -12,6 +12,9 @@ export class DataManager {
 
         this.addListener();
         void this.initData();
+
+        this.tempSongMenu = null;
+        this.tempSongMenuMediaList = null;
     }
 
     __lock = (command = null) => {
@@ -32,9 +35,17 @@ export class DataManager {
             const {command = ''} = message;
             if (command === 'getData') {
                 sendResponse(this.tempData);
-            } else if (command === 'getSongMenu' && message.sid) {
-                this.getSongMenu(message.sid, message.pn, message.ps)
+            } else if (command === 'getSongMenu' && message.songMenu) {
+                this.getSongMenu(message.songMenu.menuId, message.pn, message.ps)
                     .then(res => {
+                        this.tempSongMenu = message.songMenu;
+                        this.tempSongMenuMediaList = res;
+                        chrome.runtime.sendMessage({
+                            command: 'updateSongMenuSuccessfully',
+                            from: 'dataManager',
+                            mediaList: this.tempSongMenuMediaList,
+                            songMenu: this.tempSongMenu,
+                        });
                         sendResponse(res);
                     });
             } else if (command === 'starSongMenu' && message.songMenu) {
@@ -55,8 +66,8 @@ export class DataManager {
                             data: this.tempData,
                         });
                     });
+                return true;
             }
-            return true;
         });
     };
     initData = () => {
@@ -176,11 +187,17 @@ export class DataManager {
      */
     initRecommendList = (pn = 1, ps = 10) => {
         const resultDataList = [];
+        const idMap = {};
         const get = (pn, ps) => {
             return fetchJSON(`${API.recommendList}?pn=${pn}&ps=${ps}`)
-            .then(({curPage, pageCount, data}) => {
-                resultDataList.push(...data);
-                if (curPage < pageCount) {
+            .then(({totalSize, data}) => {
+                data.forEach((menu) => {
+                    if (!idMap[menu.menuId]) {
+                        idMap[menu.menuId] = true;
+                        resultDataList.push(menu);
+                    }
+                });
+                if (resultDataList.length < totalSize) {
                     return get(pn + 1, ps);
                 } else {
                     return resultDataList;
@@ -269,5 +286,20 @@ export class DataManager {
                 this.tempData.userCollectedMenu = userCollectedMenu;
             });
         });
+    };
+
+    updateSongMenu = () => {
+        if (this.tempSongMenu) {
+            return this.getSongMenu(this.tempSongMenu.menuId)
+                       .then(res => {
+                           this.tempSongMenuMediaList = res;
+                           return {
+                               songMenu: this.tempSongMenu,
+                               mediaList: this.tempSongMenuMediaList,
+                           };
+                       });
+        } else { // 如果并没有展开过媒体列表，则直接忽略，只有收藏媒体列表的媒体才需要更新和发送这部分数据
+            return Promise.resolve({});
+        }
     };
 }

@@ -1,4 +1,4 @@
-import API from 'Modules/dataManager/apis';
+import API from './apis';
 import {fetchJSON, getCSRF} from 'Utils';
 
 /**
@@ -37,36 +37,55 @@ export class MediaDetail {
                 this.getMediaDetail(message.sid).then((song) => {
                     chrome.runtime.sendMessage({
                         command: 'setSongViewSuccessfully',
-                        from: 'playerBackground',
+                        from: 'mediaDetailBackground',
                         song,
                     });
                 });
             } else if (command === 'hideViewer') {
-                chrome.runtime.sendMessage({command: 'hideViewer', from: 'playerBackground'});
+                chrome.runtime.sendMessage({command: 'hideViewer', from: 'mediaDetailBackground'});
             } else if (command === 'collectSong' && message.sid && message.cid !== undefined) {
-                this.setCollect(message.sid, message.cid).then(() => {
-                    return window.dataManager.initUserSongMenu().then(userMenu => {
-                        window.dataManager.tempData.userMenu = userMenu;
-                    });
-                }).then(() => {
-                    const song = window.player.controller.map.get(message.sid);
-                    if (song) {
-                        if (!!message.cid) song.collectIds.push(message.cid);
-                        else song.collectIds = [];
-                        chrome.runtime.sendMessage({
-                            command: 'collectedSongSuccessfully',
-                            from: 'playerBackground',
-                            sid: message.sid,
-                            cid: message.cid,
-                            song,
+                this.setCollect(message.sid, message.cid)
+                    .then(() => {
+                        return window.dataManager.initUserSongMenu().then(userMenu => {
+                            return window.dataManager.tempData.userMenu = userMenu;
                         });
+                    })
+                    .then((userMenu) => {
+                        return window.dataManager.updateSongMenu().then(({songMenu, mediaList}) => {
+                            // 处理用户收藏歌单中收藏情况更新的问题
+                            if (userMenu[0] && songMenu && userMenu[0].id === songMenu.id) {
+                                window.dataManager.tempSongMenu = songMenu = userMenu[0];
+                            }
+                            return {songMenu, mediaList};
+                        });
+                    })
+                    .then(({songMenu, mediaList}) => {
+                        const song = window.player.controller.map.get(message.sid);
+                        if (song) {
+                            if (!!message.cid) song.collectIds.push(message.cid);
+                            else song.collectIds = [];
+                            chrome.runtime.sendMessage({
+                                command: 'collectedSongSuccessfully',
+                                from: 'mediaDetailBackground',
+                                sid: message.sid,
+                                cid: message.cid,
+                                song,
+                            });
+                        }
                         chrome.runtime.sendMessage({
                             command: 'dataUpdated',
-                            from: 'dataManager',
+                            from: 'mediaDetailBackground',
                             data: window.dataManager.tempData,
                         });
-                    }
-                });
+                        if (songMenu && mediaList) { // 只有收藏媒体列表的媒体才需要更新和发送这部分数据
+                            chrome.runtime.sendMessage({
+                                command: 'updateSongMenuSuccessfully',
+                                from: 'mediaDetailBackground',
+                                mediaList,
+                                songMenu,
+                            });
+                        }
+                    });
             } else if (command === 'downloadLrc' && message.song) {
                 this.downloadLrc(message.song);
             } else if (command === 'downloadMedia' && message.song) {
@@ -111,11 +130,25 @@ export class MediaDetail {
                 };
             });
         });
-
     };
 
     // 获取媒体基础信息
     getBasicData = (sid) => fetchJSON(`${API.basic}?sid=${sid}`);
+
+    // 从app中获取媒体基本信息
+    getBasicDataFromApp = (sid) => fetchJSON(`${API.basic}?song_id=${sid}`).then((data) => {
+        const {cover_url: cover, collect_count: collect, play_count: play, reply_count: comment, lyric_url: lyric} = data;
+        return {
+            ...data,
+            cover,
+            statistic: {
+                collect,
+                play,
+                comment,
+            },
+            lyric,
+        };
+    });
 
     // 获取媒体基础信息
     getTags = (sid) => fetchJSON(`${API.tags}?sid=${sid}`);

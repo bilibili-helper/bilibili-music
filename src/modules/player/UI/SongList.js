@@ -189,24 +189,43 @@ const ActionBtn = styled(Icon)`
   }
 `;
 
+const SongListStarBtn = styled(ActionBtn).attrs({
+    className: 'action-btn song-list-star-btn',
+})`
+  margin-left: auto;
+  margin-right: 4px;
+  line-height: normal;
+  &.collected {
+    color: #ff8300;
+    background-color: transparent;
+    opacity: 1;
+  }
+  
+  &:hover {
+    opacity: 0.5;
+  }
+  
+  &[disabled] {
+    color: #444;
+    cursor: not-allowed;
+  }
+`;
+
+const SongListDeleteBtn = styled(ActionBtn).attrs({
+    className: 'action-btn song-list-delete-btn',
+})`
+  margin-right: 4px;
+  line-height: normal;
+`;
+
 const SongListPlayBtn = styled(ActionBtn).attrs({
     className: 'action-btn song-list-play-btn',
 })`
   line-height: normal;
 `;
 
-const SongListDeleteBtn = styled(ActionBtn).attrs({
-    className: 'action-btn song-list-delete-btn',
-})`
-  margin-left: auto;
-  margin-right: 4px;
-  line-height: normal;
-`;
-
-export const SongList = function({show, setShow, song: s}) {
+export const SongList = function({show, setShow, song, setSong, songList, setSongList}) {
     const listRef = useRef(null);
-    const [song, setSong] = useState(s);
-    const [songList, setSongList] = useState([]);
     const [deleteBtnDisabled, setDeleteBtnDisabled] = useState(false);
 
     const handleOnClickClearSongList = useCallback(() => {
@@ -238,19 +257,13 @@ export const SongList = function({show, setShow, song: s}) {
         }
     }, []);
 
+    // 点击媒体标题展开媒体详情卡片
     const handleOnClickTitle = useCallback((s) => {
         chrome.runtime.sendMessage({command: 'viewMedia', from: 'player', sid: s.id});
-        chrome.runtime.sendMessage({command: 'hideMediaList', from: 'mediaViewer'});
+        //chrome.runtime.sendMessage({command: 'hideMediaList', from: 'mediaViewer'});
+        setShow(false);
     }, []);
 
-    //useEffect(() => {
-    //    const currentSongDOM = listRef.current.querySelector('.current');
-    //    if (show && listRef.current) { // 展开列表时自动定位到正在播放歌曲
-    //        if (currentSongDOM) {
-    //            listRef.current.scrollTop = currentSongDOM.offsetTop;
-    //        }
-    //    }
-    //}, [show, song]);
 
     useEffect(() => {
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -273,13 +286,6 @@ export const SongList = function({show, setShow, song: s}) {
             }
             sendResponse();
             return true;
-        });
-        chrome.runtime.sendMessage({command: 'getSongList', from: 'songList'}, ({songList}) => {
-            setSongList(songList);
-        });
-        // 初始化歌曲
-        chrome.runtime.sendMessage({command: 'getCurrentSong', from: 'songList'}, (song) => {
-            setSong(song);
         });
     }, []);
 
@@ -331,5 +337,8 @@ export const SongList = function({show, setShow, song: s}) {
 SongList.propTypes = {
     show: PropTypes.bool,
     setShow: PropTypes.func,
+    setSong: PropTypes.func,
+    setSongList: PropTypes.func,
     song: PropTypes.any,
+    songList: PropTypes.any,
 };

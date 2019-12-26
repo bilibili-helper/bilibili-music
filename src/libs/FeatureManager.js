@@ -6,6 +6,7 @@
 
 import _ from 'lodash';
 import {StatusManager} from 'Libs/statusManager';
+import {StoreManager} from 'Libs/StoreManager';
 
 export class FeatureManager {
     constructor() {
@@ -15,6 +16,7 @@ export class FeatureManager {
 
     init(features) {
         this.statusManager = new StatusManager();
+        this.storeManager = new StoreManager();
         this.statusManager.init();
         this.instantiateFeatures(features).then(this.loadFeatures);
         this.retryMax = _.keys(features).length;

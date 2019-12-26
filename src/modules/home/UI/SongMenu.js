@@ -28,7 +28,6 @@ const Wrapper = styled.div`
   
   box-sizing: border-box;
   background-color: #fff;
-  z-index: 1;
   overflow: auto overlay;
   transform: translateY(100%);
   transition: transform 300ms;
@@ -250,19 +249,47 @@ const PlayBtn = styled(ActionBtn).attrs({
 const AddBtn = styled(ActionBtn).attrs({
     className: 'action-btn add-btn',
 })`
-  margin-left: auto;
   margin-right: 4px;
 `;
 
-export const SongMenu = function({show, setShow, songMenu, collectedSongMenu}) {
+const StarBtn = styled(ActionBtn).attrs({
+    className: 'action-btn star-btn',
+})`
+  margin: 4px 4px 4px auto;
+  text-shadow: rgba(255, 255, 255, 0.7) 0px 0px 4px;
+  cursor: pointer;
+  
+  &.collected {
+    color: #ff8300;
+    background-color: transparent;
+    opacity: 1;
+  }
+  
+  &:hover {
+    opacity: 0.5;
+  }
+  
+  &[disabled] {
+    color: #444;
+    cursor: not-allowed;
+  }
+`;
+
+export const SongMenu = function({show, setSongMenuShow, collectedSongMenu, userMenu, setShowSongList}) {
     const songMenuRef = useRef(null);
     const [songList, setSongList] = useState([]);
     const [song, setSong] = useState(null);
+    const [songMenu, setSongMenu] = useState({});
     const [songMenuHasStar, setSongMenuHasStar] = useState(false); // 当前显示歌单是否被收藏
 
     useEffect(() => {
-        const found = collectedSongMenu.find((m) => m.menuId === songMenu.menuId);
-        songMenuRef.current.scrollTop = 0;
+        if (songMenuRef && songMenuRef.current) {
+            songMenuRef.current.scrollTop = 0;
+        }
+    }, [show]);
+
+    useEffect(() => {
+        const found = songMenu && collectedSongMenu.find((m) => m.menuId === songMenu.menuId);
         setSongMenuHasStar(!!found);
     }, [songMenu, collectedSongMenu]);
 
@@ -298,7 +325,7 @@ export const SongMenu = function({show, setShow, songMenu, collectedSongMenu}) {
 
     // 关闭歌单按钮点击事件
     const handleOnClickClose = useCallback(() => {
-        setShow(false);
+        setSongMenuShow(false);
     }, [show]);
 
     // 添加媒体事件
@@ -313,12 +340,13 @@ export const SongMenu = function({show, setShow, songMenu, collectedSongMenu}) {
         chrome.runtime.sendMessage({command: 'deleteSong', from: 'songMenu', song});
     });
 
+    // 双击播放事件
     const handleOnDoubleClickPlaySong = useCallback((e, s) => {
         if (!e.target.classList.contains('bilibili-music-iconfont')) { // 屏蔽连续删除导致的误播放
             if (song && song.id === s.id) {
-                chrome.runtime.sendMessage({command: song.playing ? 'pause' : 'play', from: 'songListSection', song});
+                chrome.runtime.sendMessage({command: song.playing ? 'pause' : 'play', from: 'songMenu', song});
             } else {
-                chrome.runtime.sendMessage({command: 'setSong', from: 'songListSection', song: s});
+                chrome.runtime.sendMessage({command: 'setSong', from: 'songMenu', song: s});
             }
         }
     }, [song, songMenu]);
@@ -333,38 +361,64 @@ export const SongMenu = function({show, setShow, songMenu, collectedSongMenu}) {
         });
     }, [songMenu]);
 
+    // 媒体名称被点击，弹出媒体详情卡片
     const handleOnClickTitle = useCallback((s) => {
-        chrome.runtime.sendMessage({command: 'viewMedia', from: 'player', sid: s.id});
-        chrome.runtime.sendMessage({command: 'hideMediaList', from: 'mediaViewer'});
+        chrome.runtime.sendMessage({command: 'viewMedia', from: 'songMenu', sid: s.id});
+        setShowSongList(false);
     }, []);
 
+    const handleOnClickStarBtn = useCallback((s) => {
+        chrome.runtime.sendMessage({
+            command: 'collectSong',
+            from: 'player',
+            sid: s.id,
+            cid: s.collectIds && s.collectIds.length > 0 ? '' : userMenu[0].id,
+        });
+        chrome.runtime.sendMessage({
+            command: 'setGAEvent',
+            action: '点击-歌单歌曲列表',
+            category: '收藏按钮',
+        });
+    }, [userMenu]);
+
+    const handleOnMessageListener = useCallback((message) => {
+        const {command = '', from = ''} = message;
+        if (from !== 'playerBackground' && from !== 'mediaDetailBackground' && from !== 'dataManager') return true;
+
+        if (command === 'ended') {
+            setSong(message.song);
+            setSongList(message.songList);
+        } else if (command === 'pause') { // 暂停或播放结束
+            setSong(message.song);
+            setSongList(message.songList);
+        } else if (command === 'play') {
+            setSong(message.song);
+            setSongList(message.songList);
+        } else if (command === 'loadstart') {
+            setSong(message.song);
+        } else if ((command === 'addSongSuccessfully' || command === 'deleteSongSuccessfully' || command === 'modifySongListSuccessfully') && message.songList) {
+            setSong(message.song);
+            setSongList(message.songList);
+        } else if (command === 'updateSongMenuSuccessfully') {
+            const {songMenu, mediaList} = message;
+            setSongMenu({...songMenu, data: mediaList});
+        }
+    }, [songMenu, song]);
+
     useEffect(() => {
-        chrome.runtime.sendMessage({command: 'getSongList', from: 'slongListSection'}, ({song, songList}) => {
+        // 接收来自播放器背景页的播放状态指令
+        chrome.runtime.onMessage.addListener(handleOnMessageListener);
+        return () => {
+            chrome.runtime.onMessage.removeListener(handleOnMessageListener);
+        };
+    }, [songMenu, song]);
+
+    useEffect(() => {
+        chrome.runtime.sendMessage({command: 'getSongList', from: 'songMenu'}, ({song, songList}) => {
             setSong(song);
             setSongList(songList);
         });
-        // 接收来自播放器背景页的播放状态指令
-        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-            //console.info(message);
-            const {command = '', from = ''} = message;
-            if (from !== 'playerBackground') return true;
 
-            if (command === 'ended') {
-                setSong(message.song);
-                setSongList(message.songList);
-            } else if (command === 'pause') { // 暂停或播放结束
-                setSong(message.song);
-                setSongList(message.songList);
-            } else if (command === 'play') {
-                setSong(message.song);
-                setSongList(message.songList);
-            } else if (command === 'loadstart') {
-                setSong(message.song);
-            } else if ((command === 'addSongSuccessfully' || command === 'deleteSongSuccessfully' || command === 'modifySongListSuccessfully') && message.songList) {
-                setSong(message.song);
-                setSongList(message.songList);
-            }
-        });
     }, []);
     return (
         <Wrapper className={show ? 'show' : ''} ref={songMenuRef}>
@@ -408,6 +462,7 @@ export const SongMenu = function({show, setShow, songMenu, collectedSongMenu}) {
                     const inList = !!songList.find((item) => item.id === s.id);
                     const isPlaying = song ? (song.id === s.id && song.playing) : false;
                     const isCurrent = song ? (song.id === s.id && song.current) : false;
+                    const hasStar = s.collectIds && s.collectIds.length > 0;
                     return (
                         <li
                             key={s.id}
@@ -420,6 +475,12 @@ export const SongMenu = function({show, setShow, songMenu, collectedSongMenu}) {
                             <span className="index">{isPlaying ? <Icon icon="playing"/> : `${index + 1}.`}</span>
                             <span className="title" onClick={() => handleOnClickTitle(s)}>{s.title}</span>
                             {/*<span className="author">{song.author}</span>*/}
+                            <StarBtn
+                                size={12}
+                                icon="star"
+                                className={hasStar ? 'collected' : null}
+                                onClick={() => handleOnClickStarBtn(s)}
+                            />
                             <AddBtn
                                 size={12}
                                 icon={inList ? 'delete' : 'add'}
@@ -440,7 +501,7 @@ export const SongMenu = function({show, setShow, songMenu, collectedSongMenu}) {
 
 SongMenu.propTypes = {
     show: PropTypes.bool,
+    userMenu: PropTypes.array,
     collectedSongMenu: PropTypes.array,
-    songMenu: PropTypes.array,
-    setShow: PropTypes.func,
+    setSongMenuShow: PropTypes.func,
 };

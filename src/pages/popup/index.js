@@ -3,6 +3,10 @@
  * Create: 2019-05-15
  * Description:
  */
-import {UIManager} from 'Libs/UIManager';
 
-new UIManager('popup');
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+import {App} from './app';
+
+ReactDOM.render(<App/>, document.getElementById('root'));
