@@ -200,6 +200,7 @@ const Wrapper = styled.div.attrs({
           font-size: 14px;
           font-weight: bold;
           text-overflow: ellipsis;
+          word-break: break-all;
         }
         .statistic {
           span {
@@ -308,6 +309,7 @@ const IntroductionSection = styled(Section)`
   
   pre {
     white-space: pre-wrap;
+    word-break: break-all;
   }
 `;
 
@@ -460,7 +462,6 @@ export const Viewer = function({song, userMenu, setShow, show, setShowSongList})
 
     const handleOnMessageListener = useCallback((message, sender, sendResponse) => {
         const {command = '', from = ''} = message;
-        console.info(message);
         if (from !== 'playerBackground' && from !== 'mediaDetailBackground') return true;
 
         if (command === 'hideViewer') {
