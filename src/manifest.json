@@ -2,7 +2,7 @@
     "manifest_version": 2,
     "name": "__MSG_extensionName__",
     "short_name": "__MSG_extensionShortName__",
-    "version": "1.2.1.1",
+    "version": "1.2.2",
     "description": "__MSG_extensionDescription__",
     "default_locale": "zh_CN",
     "content_scripts": [],
@@ -26,7 +26,11 @@
     "permissions": [
         "cookies",
         "downloads",
+        "webRequest",
+        "webRequestBlocking",
         "storage",
+        "*://*.acgvideo.com/*",
+        "*://*.bilivideo.com/*",
         "*://*.bilibili.com/*",
         "*://*.hdslb.com/*",
         "*://*.cgvideo.com/*"

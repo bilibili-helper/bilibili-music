@@ -16,9 +16,32 @@ export class Player {
         this.addListener();
         this.initPlayer();
         this.initSongList();
+        this.initMediaSessionControlHandle();
     }
 
     addListener = () => {
+        chrome.webRequest.onBeforeSendHeaders.addListener((details) => {
+            const {requestHeaders, initiator} = details;
+            const Headers = [...requestHeaders];
+            if (/^chrome-extension:\/\//.test(initiator)) {
+                const refererHeader = Headers.find((e) => e.name.toLowerCase() === 'referer');
+                if (refererHeader) {
+                    refererHeader.value = 'https://www.bilibili.com/';
+                } else {
+                    Headers.push({
+                        name: 'referer',
+                        value: 'https://www.bilibili.com/',
+                    });
+                    return {requestHeaders: Headers};
+                }
+            } else {
+                return {requestHeaders};
+            }
+        }, {
+            urls: [
+                '*://*.bilivideo.com/*',
+            ],
+        }, ['blocking', 'requestHeaders', 'extraHeaders']);
         chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
             const {command = '', from = ''} = message;
             if (command === 'setSong') { // 设置当前播放媒体
@@ -99,6 +122,17 @@ export class Player {
             }
             return true;
         });
+    };
+
+    initMediaSessionControlHandle = () => {
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.setActionHandler('play', this.controller.play);
+            navigator.mediaSession.setActionHandler('pause', this.controller.pause);
+            //navigator.mediaSession.setActionHandler('seekbackward', function() {});
+            //navigator.mediaSession.setActionHandler('seekforward', function() {});
+            navigator.mediaSession.setActionHandler('previoustrack', () => this.controller.turnPrev(this.config.playMode));
+            navigator.mediaSession.setActionHandler('nexttrack', () => this.controller.turnNext(this.config.playMode));
+        }
     };
 
     initConfig = () => {

@@ -21,6 +21,8 @@ export class MediaController {
         this.lockCommand = null; // 锁住的指令
 
         this.__initBoundMedias();
+
+        this
     }
 
     get(sid) {
@@ -126,7 +128,10 @@ export class MediaController {
         media.current = true;
         media.playing = true;
 
+        this.set2BackgroundPage(media);
+
         this.mediaListCache = null;
+
         this.player.src = src;
     };
 
@@ -335,4 +340,18 @@ export class MediaController {
     turnNext = async (playMode) => {
         return await this.turn('next', playMode);
     };
+
+    set2BackgroundPage(media) {
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new window.MediaMetadata({
+                title: media.title,
+                artist: media.author,
+                album: '',
+                artwork: [
+                    { src: media.cover,   sizes: '320x180',   type: 'image/jpeg' },
+                ]
+            });
+        }
+
+    }
 }
