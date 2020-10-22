@@ -5,6 +5,8 @@
  */
 import {MediaController} from './MediaController';
 import store from 'store';
+import {throttle} from 'lodash';
+import URLParse from 'url-parse';
 
 export class Player {
     constructor() {
@@ -22,6 +24,8 @@ export class Player {
     addListener = () => {
         chrome.webRequest.onBeforeSendHeaders.addListener((details) => {
             const {requestHeaders, initiator} = details;
+            const url = new URLParse(details.url, '', true);
+            const {query: data} = url;
             const Headers = [...requestHeaders];
             if (/^chrome-extension:\/\//.test(initiator)) {
                 const refererHeader = Headers.find((e) => e.name.toLowerCase() === 'referer');
@@ -32,8 +36,14 @@ export class Player {
                         name: 'referer',
                         value: 'https://www.bilibili.com/',
                     });
-                    return {requestHeaders: Headers};
                 }
+                if (data && data.requestFrom === 'bilibili-music' && data.requestType === 'audioFromVideo') {
+                    Headers.push({
+                        name: 'Range',
+                        value: 'bytes=0-',
+                    });
+                }
+                return {requestHeaders: Headers};
             } else {
                 return {requestHeaders};
             }
@@ -52,6 +62,19 @@ export class Player {
                 await this.controller.pause();
             } else if (command === 'setVolume' && message.volume !== undefined) {
                 this.setVolume(+message.volume);
+            } else if (command === 'setProgress' && message.progress !== undefined) {
+                await this.controller.play();
+                if (this.setProgress(message.progress)) {
+                    sendResponse(message.progress);
+                }
+            } else if (command === 'getProgress') {
+                const song = this.controller.getCurrentMedia();
+                if (song && song.duration && this.player.currentTime) {
+                    const progress = this.player.currentTime / song.duration;
+                    if (this.saveProgress(progress)) {
+                        sendResponse(progress);
+                    }
+                }
             } else if (command === 'setNextSong') {
                 await this.controller.turnNext(this.config.playMode);
             } else if (command === 'setPrevSong') {
@@ -87,6 +110,7 @@ export class Player {
             } else if (command === 'addSong' && message.song) { // 添加媒体到播放列表
                 await this.controller.addSong(message.song);
                 const mediaList = this.controller.getMediaList();
+                console.info(message.song, mediaList);
                 chrome.runtime.sendMessage({
                     command: 'addSongSuccessfully',
                     from: 'playerBackground',
@@ -140,27 +164,39 @@ export class Player {
         const config = this.getSubStore('config');
         let volume = 0.8;
         let playMode = 0;
+        let progress = 0;
         if (config) {
             volume = config.volume;
             playMode = config.playMode;
+            progress = config.progress;
         } else {
-            this.setSubStore('config', {volume, playMode});
+            this.setSubStore('config', {volume, playMode, progress});
         }
 
-        return {volume, playMode};
+        return {volume, playMode, progress};
     };
 
     // 初始化播放列表，缓存在本地
     initSongList = () => {
         const controllerStore = this.getSubStore('controller') || {};
-        const {map = null, startMedia, orderedEndMedia, randomEndMedia} = controllerStore;
+        const {map, startMedia, orderedEndMedia, randomEndMedia} = controllerStore;
         if (map) {
+            map.forEach((media) => {
+                if (!media[1].type) {
+                    media[1].type = 'audio';
+                }
+            });
+            console.info(map);
             this.controller = new MediaController(this.player, map, false, startMedia, orderedEndMedia, randomEndMedia);
         } else {
             this.controller = new MediaController(this.player, [], true);
         }
         const current = this.controller.getCurrentMedia();
-        if (current) current.playing = false; // 初始化媒体列表后，重置播放状态
+        if (current) {
+            this.config.duration = current.duration;
+            this.player.currentTime = current.duration * this.config.progress;
+            current.playing = false;
+        } // 初始化媒体列表后，重置播放状态
     };
 
     initPlayer = () => {
@@ -187,13 +223,11 @@ export class Player {
 
         // 可以开始播放，而且估计已经有加载足够的数据量确保在播放完前不会暂停
         this.player.addEventListener('canplaythrough', function() {
-            //console.info(event);
             void this.play();
         });
 
         // 暂停
         this.player.addEventListener('pause', () => {
-            //console.info(event);
             const current = this.controller.getCurrentMedia(); // 用于处理mac touch bar控制时的状态切换
             if (current) {
                 current.playing = false;
@@ -210,7 +244,6 @@ export class Player {
 
         // 播放
         this.player.addEventListener('play', () => {
-            //console.info(event);
             const current = this.controller.getCurrentMedia(); // 用于处理mac touch bar控制时的状态切换
             if (current) {
                 current.playing = true;
@@ -233,9 +266,12 @@ export class Player {
         });
 
         //// 正在播放
-        //this.player.addEventListener('plaing', function(event) {
-        //    //console.info(event);
+        //this.player.addEventListener('playing', function(event) {
+        //    console.info(event);
         //});
+        this.player.addEventListener('timeupdate', throttle(() => {
+            this.saveProgress(this.player.currentTime / this.player.duration);
+        }, 1000));
 
         // 播放结束
         this.player.addEventListener('ended', async () => {
@@ -251,7 +287,7 @@ export class Player {
 
         this.player.addEventListener('volumechange', () => {
             chrome.runtime.sendMessage({
-                command: 'volumechange',
+                command: 'volumeChange',
                 from: 'playerBackground',
                 volume: this.player.volume,
             });
@@ -272,6 +308,24 @@ export class Player {
     setVolume = (value) => {
         this.player.volume = this.config.volume = value;
         this.setSubStore('config', this.config);
+    };
+
+    setProgress = (value) => {
+        if (isNaN(this.player.duration)) {
+            return;
+        }
+        this.player.currentTime = this.player.duration * value;
+        this.player.progress = value;
+        return this.saveProgress(value);
+    };
+
+    saveProgress = (value) => {
+        if (isNaN(value)) {
+            return;
+        }
+        this.config.progress = value;
+        this.setSubStore('config', this.config);
+        return value;
     };
 
     // 设置播放模式

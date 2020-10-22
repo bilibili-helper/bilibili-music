@@ -80,7 +80,16 @@ const CloseBtn = styled(Icon)`
   padding: 4px;
   color: #fff;
   text-shadow: rgba(51, 51, 51, 0.5) 0px 0px 3px;
+  transition: color 300ms;
   cursor: pointer;
+  
+  &:hover {
+    color: #eee;
+  }
+  
+  &:active {
+    color: #ccc;
+  }
 `;
 
 const List = styled.div`
@@ -259,8 +268,13 @@ export const SongList = function({show, setShow, song, setSong, songList, setSon
 
     // 点击媒体标题展开媒体详情卡片
     const handleOnClickTitle = useCallback((s) => {
-        chrome.runtime.sendMessage({command: 'viewMedia', from: 'player', sid: s.id});
-        //chrome.runtime.sendMessage({command: 'hideMediaList', from: 'mediaViewer'});
+        chrome.runtime.sendMessage({
+            command: 'viewMedia',
+            from: 'player',
+            type: s.type,
+            song: s,
+            sid: s.id,
+        });
         setShow(false);
     }, []);
 
@@ -291,7 +305,7 @@ export const SongList = function({show, setShow, song, setSong, songList, setSon
 
     return (
         <SongListWrapper className={[show ? 'show' : '']}>
-            <CloseBtn icon="close" onClick={() => setShow(false)}/>
+            <CloseBtn icon="down" onClick={() => setShow(false)}/>
             <header>
                 播放列表
                 <button

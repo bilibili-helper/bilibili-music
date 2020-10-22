@@ -37,9 +37,14 @@ const Wrapper = styled.div.attrs({
   will-change: box-shadow, background-color;
   
   &:hover {
+    width: 288px;
+    height: 84px;
     box-shadow: rgba(153, 153, 153, 0.5) 0px 0px 8px inset;
     .banner-item img {
+      width: 100%;
+      height: 100%;
       box-shadow: rgba(191, 191, 191, 0.5) 0px 0px 0px;
+      object-fit: cover;
     }
   }
   
@@ -85,7 +90,7 @@ const dealWithCoverSchema = (schema) => {
     return schema;
 };
 
-export const Banner = function({data = []}) {
+export const Banner = function(props) {
     const handleOnClickBanner = useCallback((banner) => {
         chrome.runtime.sendMessage({
             command: 'setGAEvent',
@@ -97,7 +102,7 @@ export const Banner = function({data = []}) {
 
     return (
         <Wrapper>
-            {data.map((item) => {
+            {props.data && props.data.map((item) => {
                 return (
                     <a
                         key={item.bannerId}

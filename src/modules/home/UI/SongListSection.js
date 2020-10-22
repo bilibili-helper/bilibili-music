@@ -197,6 +197,7 @@ const CloseBtn = styled(Icon)`
   padding: 4px;
   color: #fff;
   text-shadow: rgba(51, 51, 51, 0.5) 0px 0px 3px;
+  transition: color 300ms;
   cursor: pointer;
 `;
 

@@ -115,7 +115,11 @@ export class MediaController {
      * @returns {Promise<unknown>}
      */
     __getMediaSrc = async (media, quality = 2, privilege = 2) => {
-        return await fetchJSON(`${API.src}?sid=${media.id}&quality=${quality}&privilege=${privilege}`).then(res => res.cdns[0]);
+        if (media.type === 'video') {
+            return await Promise.resolve(media.url);
+        } else {
+            return await fetchJSON(`${API.src}?sid=${media.id}&quality=${quality}&privilege=${privilege}`).then(res => res.cdns[0]);
+        }
     };
 
     __set2Current = async (media) => {
@@ -132,6 +136,7 @@ export class MediaController {
 
         this.mediaListCache = null;
 
+        this.player.currentTime = 0;
         this.player.src = src;
     };
 
@@ -146,12 +151,14 @@ export class MediaController {
 
     // 往链表后面添加元素
     __add = async (media, sameSkip = true) => {
+        console.info(media);
         // 判断是否已经存在
         if (this.map.has(media.id) && sameSkip) {
             return Promise.resolve(this.map.get(media.id));
         }
 
-        if (this.map.size === 0) { // 处理空表
+        // 处理空表
+        if (this.map.size === 0) {
             this.startMedia = media;
             this.orderedEndMedia = media;
             this.randomEndMedia = media;
@@ -162,7 +169,7 @@ export class MediaController {
         this.orderedEndMedia.orderedNext = media.id;
         media.orderedNext = this.startMedia.id;
         this.startMedia.orderedPrev = media.id;
-
+        console.info(media);
         // 更新和设置在无序链表中的下标
         media.randomNext = (this.startMedia && this.startMedia.id) || media.id;
         media.randomPrev = (this.randomEndMedia && this.randomEndMedia.id) || media.id;
@@ -171,6 +178,7 @@ export class MediaController {
         this.map.set(media.id, media);
 
         this.mediaListCache = null;
+        console.info(media);
         return media;
     };
 
@@ -352,6 +360,9 @@ export class MediaController {
                 ]
             });
         }
+    }
+
+    getAudioFromVideo = async (aid, cid) => {
 
     }
 }

@@ -9,6 +9,7 @@ import {SongList} from 'Modules/player/UI/SongList';
 import PropTypes from 'prop-types';
 import React, {useCallback, useEffect, useState} from 'react';
 import styled from 'styled-components';
+import {av2bv} from 'Utils/functions';
 
 const EMPTY_IMAGE_SRC = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
@@ -23,7 +24,16 @@ const CloseBtn = styled(Icon)`
   color: #fff;
   text-shadow: rgba(51, 51, 51, 0.5) 0px 0px 3px;
   cursor: pointer;
+  transition: color 300ms;
   z-index: 1;
+  
+  &:hover {
+    color: #eee;
+  }
+  
+  &:active {
+    color: #ccc;
+  }
 `;
 
 const CoverBox = styled.div`
@@ -33,7 +43,8 @@ const CoverBox = styled.div`
   bottom: 6px;
   left: 6px;
   border-radius: 4px;
-  background-color: #ddd;
+  backdrop-filter: blur(14px);
+  background-color: rgb(221 221 221 / 7%);
   box-shadow: rgba(0, 0, 0, 0.5) 0px 2px 6px -2px;
   cursor: pointer;
   transform: translate(0, 70px);
@@ -80,9 +91,10 @@ const CoverBox = styled.div`
 `;
 
 const CoverBtn = styled(Image)`
-  width: 64px;
-  height: 64px;
+  width: 100%;
+  height: 100%;
   border-radius: 4px;
+  object-fit: cover;
 `;
 
 const StarBtn = styled(Icon).attrs({
@@ -182,10 +194,12 @@ const Wrapper = styled.div.attrs({
         .cover {
           display: block;
           width: 100px;
+          height: 100%;
           border-radius: 8px;
           box-shadow: rgba(0, 0, 0, 0.5) 0px 2px 6px -2px;
           user-select: none;
           -webkit-user-drag: none;
+          object-fit: cover;
         }
       }
       
@@ -197,10 +211,15 @@ const Wrapper = styled.div.attrs({
           width: 160px;
         }
         .title {
+          display: -webkit-box;
+          max-height: 40px;
           font-size: 14px;
           font-weight: bold;
           text-overflow: ellipsis;
           word-break: break-all;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
         .statistic {
           span {
@@ -336,6 +355,17 @@ const MemberSection = styled(Section)`
 
 const TagSection = styled(Section)`
   color: #666;
+  
+  a {
+    margin-right: 6px;
+    line-height: 24px;
+    color: initial;
+    text-decoration: none;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 `;
 
 const LrcSection = styled(Section)`
@@ -389,27 +419,42 @@ const getMemberStrByType = (type) => {
             return '原曲';
         case 7:
             return '封面制作';
+        case 8:
+            return '音源';
+        case 9:
+            return '调音';
+        case 10:
+            return '演奏';
+        case 11:
+            return '乐器';
         case 127:
             return '上传者';
+        case 1000:
+            return 'UP主';
+        case 1001:
+            return '视频制作';
     }
 };
 
-export const Viewer = function({song, userMenu, setShow, show, setShowSongList}) {
-    const [coverSong, setCoverSong] = useState(song);
+export const Viewer = function({song: coverMedia, userMenu, setShow, show, setShowSongList}) {
+    const [detailMedia, setDetailMedia] = useState(null);
+    //const [coverMedia, setCoverMedia] = useState(song);
+    const coverMediaStarted = coverMedia && coverMedia.collectIds && coverMedia.collectIds.length > 0;
+    const detailMediaStarted = detailMedia && detailMedia.collectIds && detailMedia.collectIds.length > 0;
 
     const handleOnClickStarBtn = useCallback((collected = false) => {
         chrome.runtime.sendMessage({
             command: 'collectSong',
             from: 'player',
-            sid: coverSong.id,
+            sid: detailMedia.id,
             cid: collected ? '' : userMenu[0].id,
         });
         chrome.runtime.sendMessage({
             command: 'setGAEvent',
-            action: '点击-播放器',
+            action: '点击-媒体详情页',
             category: '收藏按钮',
         });
-    }, [coverSong, userMenu]);
+    }, [detailMedia, userMenu]);
 
     // 封面点击
     const handleOnClickCover = useCallback(() => {
@@ -417,23 +462,29 @@ export const Viewer = function({song, userMenu, setShow, show, setShowSongList})
             command: 'setGAEvent',
             action: '点击-播放器',
             category: '封面',
-            label: coverSong.id,
+            label: detailMedia.id,
         });
-        if (!show && coverSong) {
-            chrome.runtime.sendMessage({command: 'viewMedia', from: 'player', sid: song.id});
+        if (!show && coverMedia) {
+            chrome.runtime.sendMessage({
+                command: 'viewMedia',
+                from: 'player',
+                type: coverMedia.type,
+                song: coverMedia,
+                sid: coverMedia.id,
+            });
         } else {
             setShow(!show);
         }
-    }, [show, song, coverSong]);
+    }, [show, coverMedia, detailMedia]);
 
     // 点击下载歌词
     const handleOnClickDownloadLRC = useCallback(() => {
         chrome.runtime.sendMessage({
             command: 'downloadLrc',
             from: 'mediaViewer',
-            song: coverSong,
+            song: detailMedia,
         });
-    }, [coverSong]);
+    }, [detailMedia]);
 
     // 封面外链点击事件
     const handleOnClickDetailCover = useCallback(() => {
@@ -441,9 +492,14 @@ export const Viewer = function({song, userMenu, setShow, show, setShowSongList})
             command: 'setGAEvent',
             action: '点击-媒体详情页',
             category: '封面',
-            label: coverSong.id,
+            label: detailMedia.id,
         });
-    }, [coverSong]);
+        if (detailMedia.type === 'audio') {
+            window.open(`https://www.bilibili.com/audio/au${detailMedia.id}`, '__blank');
+        } else if (detailMedia.type === 'video') {
+            window.open(`https://www.bilibili.com/video/${av2bv(detailMedia.aid)}`, '__blank');
+        }
+    }, [detailMedia]);
 
     // 下载媒体事件
     const handleOnClickDownloadMedia = useCallback(() => {
@@ -451,91 +507,104 @@ export const Viewer = function({song, userMenu, setShow, show, setShowSongList})
             command: 'setGAEvent',
             action: '点击-媒体详情页',
             category: '下载媒体',
-            label: song.id,
+            label: coverMedia.id,
         });
         chrome.runtime.sendMessage({
             command: 'downloadMedia',
             from: 'mediaViewer',
-            song,
+            song: coverMedia,
         });
-    }, [song]);
+    }, [coverMedia]);
+
+    const handleOnClickPlayMedia = useCallback(() => {
+        chrome.runtime.sendMessage({command: 'setSong', from: 'videoSearcher', song: detailMedia});
+    }, [detailMedia]);
 
     const handleOnMessageListener = useCallback((message, sender, sendResponse) => {
         const {command = '', from = ''} = message;
         if (from !== 'playerBackground' && from !== 'mediaDetailBackground') return true;
-
+        console.info(message);
         if (command === 'hideViewer') {
             setShow(false);
         } else if (command === 'ended') {
             return true;
         } else if (command === 'pause') { // 暂停或播放结束
-            setCoverSong(message.song);
+            //setCoverMedia(message.song);
         } else if (command === 'play') {
-            setCoverSong(message.song);
+            //setCoverMedia(message.song);
         } else if (command === 'loadstart') {
-            setCoverSong(message.song);
+            //setCoverMedia(message.song);
         } else if ((command === 'addSongSuccessfully' || command === 'deleteSongSuccessfully' || command === 'modifySongListSuccessfully') && message.songList) {
-            setCoverSong(message.song);
+            const {song} = message;
+            if (song && coverMedia && song.id !== coverMedia.id) {
+                //setCoverMedia(song);
+            }
         } else if (command === 'collectedSongSuccessfully' || command === 'cancelCollectSongSuccessfully') {
             const {song} = message;
-            if (song && coverSong && song.id === coverSong.id) {
-                setCoverSong(song);
+            console.info(song, detailMedia);
+            if (song && detailMedia && song.id === detailMedia.id) {
+                setDetailMedia({detailMedia, ...song});
+            } else if (song && coverMedia && song.id === coverMedia.id) {
+                //setCoverMedia(song);
             }
         } else if (command === 'setSongViewSuccessfully' && message.song) { // 暂停或播放结束
-            setCoverSong(message.song);
+            setDetailMedia(message.song);
             setShowSongList(false);
             setShow(true);
         }
         sendResponse();
         return true;
-    }, [coverSong]);
+    }, [detailMedia]);
 
     useEffect(() => {
-        if (!coverSong && song) {
-            setCoverSong(song);
+        if (!detailMedia && coverMedia) {
+            setDetailMedia(coverMedia);
         }
         chrome.runtime.onMessage.addListener(handleOnMessageListener);
         return () => chrome.runtime.onMessage.removeListener(handleOnMessageListener);
-    }, [song, coverSong]);
+    }, [coverMedia, detailMedia]);
 
+    //console.log(detailMedia);
 
     return (
         <React.Fragment>
-            <CoverBox className={song && song.cover ? 'show' : null}>
+            <CoverBox className={coverMedia && coverMedia.cover ? 'show' : null}>
                 <CoverBtn
-                    alt={song ? song.title : null}
-                    src={song ? song.cover : EMPTY_IMAGE_SRC}
-                    onClick={() => song ? handleOnClickCover() : null}
+                    alt={coverMedia ? coverMedia.title : null}
+                    src={coverMedia ? coverMedia.cover : EMPTY_IMAGE_SRC}
+                    onClick={() => coverMedia ? handleOnClickCover() : null}
                 />
-                <StarBtn
-                    icon="star"
-                    size={14}
-                    className={song && song.collectIds && song.collectIds.length > 0 ? 'collected' : null}
-                    disabled={!song}
-                    onClick={() => handleOnClickStarBtn(song && song.collectIds && song.collectIds.length > 0)}
-                />
+                {coverMedia && coverMedia.type === 'audio' && (
+                    <StarBtn
+                        icon="star"
+                        size={14}
+                        className={coverMediaStarted ? 'collected' : null}
+                        disabled={!coverMedia}
+                        onClick={() => handleOnClickStarBtn(coverMediaStarted)}
+                    />
+                )}
                 <i className={`bilibili-music-iconfont bilibili-music-icon-right-dashed ${show ? 'show-viewer' : null}`}/>
             </CoverBox>
             <Wrapper className={show ? 'show' : null}>
-                <CloseBtn icon="close" onClick={() => setShow(false)}/>
-                {coverSong && (<div className="content">
+                <CloseBtn icon="down" onClick={() => setShow(false)}/>
+                {detailMedia && (<div className="content">
                     <header>
                         <div className="menu-info">
                             <a
                                 className="cover-box"
-                                href={`https://www.bilibili.com/audio/au${coverSong.id}`}
+                                //href={`https://www.bilibili.com/audio/au${detailMedia.id}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={handleOnClickDetailCover}
                             >
-                                <Image className="cover" src={coverSong.cover || DEFAULT_COVER}/>
+                                <Image className="cover" src={detailMedia.cover || DEFAULT_COVER}/>
                                 <Icon icon="outLink"/>
                             </a>
                             <div className="description">
-                                <p className="title">{coverSong.title}</p>
+                                <p className="title">{detailMedia.title}</p>
                                 {(() => {
-                                    if (!coverSong.statistic) return null;
-                                    const {play, collect, comment} = coverSong.statistic;
+                                    if (!detailMedia.statistic) return null;
+                                    const {play, collect, comment} = detailMedia.statistic;
                                     return (
                                         <React.Fragment>
                                             {play !== undefined && <p className="statistic"><span>播放数：</span>{play}</p>}
@@ -546,29 +615,56 @@ export const Viewer = function({song, userMenu, setShow, show, setShowSongList})
                                 })()}
                             </div>
                         </div>
+                        <div className="extra-tools">
+                            {!detailMedia.playing && (
+                                <button
+                                    className="play-all-btn"
+                                    disabled={!detailMedia}
+                                    onClick={handleOnClickPlayMedia}
+                                >
+                                    <Icon icon="play"/>播放
+                                </button>
+                            )}
+                            {/*{detailMedia.type === 'audio' && (
+                                <button
+                                    className="star-btn"
+                                    disabled={!detailMedia}
+                                    onClick={() => handleOnClickStarBtn(detailMediaStarted)}
+                                >
+                                    <Icon icon="star"/>{detailMediaStarted ? '取消收藏' : '收藏'}
+                                </button>
+                            )}*/}
+                        </div>
                     </header>
                     <IntroductionSection>
                         <h1>简介
                             <button onClick={handleOnClickDownloadMedia}><Icon icon="download"/>下载歌曲</button>
                         </h1>
-                        <pre>{coverSong.intro}</pre>
+                        <pre>{detailMedia.intro}</pre>
                     </IntroductionSection>
-                    <TagSection>分类：{coverSong.tags && coverSong.tags.map(({info}) => info).join('、')}</TagSection>
-                    {coverSong.members && coverSong.members.length > 0 && <MemberSection>
+                    <TagSection>分类：{detailMedia.tags && detailMedia.tags.map(({info}, index) => (
+                        <a
+                            key={index}
+                            href={`https://search.bilibili.com/all?keyword=${info}&from_source=video_tag`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >{info}</a>
+                    ))}</TagSection>
+                    {detailMedia.members && detailMedia.members.length > 0 && <MemberSection>
                         <h1>创作团队</h1>
                         <ul>
-                            {coverSong.members.map((member) => (
+                            {detailMedia.members.map((member) => (
                                 <li key={member.type}>
                                     <span>{getMemberStrByType(member.type)}:</span> {member.list.map(({name}) => name).join('/')}
                                 </li>
                             ))}
                         </ul>
                     </MemberSection>}
-                    {coverSong.lyric && coverSong.lrcData && coverSong.lrcData.length > 0 && coverSong.lrcData[0].length > 0 && <LrcSection>
+                    {detailMedia.lyric && detailMedia.lrcData && detailMedia.lrcData.length > 0 && detailMedia.lrcData[0].length > 0 && <LrcSection>
                         <h1>歌词
-                            <button onClick={handleOnClickDownloadLRC}><Icon icon="download"/>Download LRC</button>
+                            <button onClick={handleOnClickDownloadLRC}><Icon icon="download"/>下载 LRC 文件</button>
                         </h1>
-                        {coverSong.lrcData.map((sentence, index) => <p key={index}>{sentence[3]}</p>)}
+                        {detailMedia.lrcData.map((sentence, index) => <p key={index}>{sentence[3]}</p>)}
                     </LrcSection>}
                 </div>)}
             </Wrapper>

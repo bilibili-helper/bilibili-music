@@ -20,10 +20,10 @@ const Img = styled.img.attrs({
     className: 'model-img',
 })`
   &:not([src]) {
-    content: url("data:image/gif;base64,R0lGODlhAQABAPAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==");
-    border: 1px solid var(--border-color);
+    content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
+    backdrop-filter: blur(14px);
+    background-color: rgb(221 221 221 / 7%);
     box-sizing: border-box;
-    opacity: 0;
   }
   &[src] {
     animation: ${FadeIn} cubic-bezier(0.16, 0.6, 0.45, 0.93);
@@ -33,10 +33,17 @@ const Img = styled.img.attrs({
 
 export const Image = function({src = '', ...rest}) {
     const [loaded, setLoaded] = useState(false);
+    const [current, setCurrent] = useState(null);
 
     useEffect(() => {
+        if (current !== src) {
+            setLoaded(false);
+        }
         const img = new window.Image();
-        img.onload = () => setLoaded(true);
+        img.onload = () => {
+            setCurrent(src);
+            setLoaded(true);
+        };
         img.src = src;
     }, [src]);
 

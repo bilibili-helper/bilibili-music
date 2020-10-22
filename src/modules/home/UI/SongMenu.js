@@ -77,12 +77,13 @@ const Wrapper = styled.div`
       }
       
       .description {
-        color: #fff;
+        color: #333;
         p {
           width: 160px;
-          text-shadow: hsla(0, 0%, 0%, 0.35) 0px 0px 3px;
+          text-shadow: rgb(245 245 245 / 80%) 0px 0px 3px;
         }
         .title {
+          font-size: 14px;
           font-weight: bold;
           text-overflow: ellipsis;
         }
@@ -216,7 +217,16 @@ const CloseBtn = styled(Icon)`
   padding: 4px;
   color: #fff;
   text-shadow: rgba(51, 51, 51, 0.5) 0px 0px 3px;
+  transition: color 300ms;
   cursor: pointer;
+  
+  &:hover {
+    color: #eee;
+  }
+  
+  &:active {
+    color: #ccc;
+  }
 `;
 
 const ActionBtn = styled(Icon)`
@@ -363,7 +373,13 @@ export const SongMenu = function({show, setSongMenuShow, collectedSongMenu, user
 
     // 媒体名称被点击，弹出媒体详情卡片
     const handleOnClickTitle = useCallback((s) => {
-        chrome.runtime.sendMessage({command: 'viewMedia', from: 'songMenu', sid: s.id});
+        chrome.runtime.sendMessage({
+            command: 'viewMedia',
+            from: 'songMenu',
+            type: s.type,
+            song: s,
+            sid: s.id,
+        });
         setShowSongList(false);
     }, []);
 
@@ -455,7 +471,7 @@ export const SongMenu = function({show, setSongMenuShow, collectedSongMenu, user
                         <Icon icon="star"/>{songMenuHasStar ? '取消收藏' : '收藏歌单'}
                     </button>
                 </div>
-                <CloseBtn icon="close" onClick={handleOnClickClose}/>
+                <CloseBtn icon="down" onClick={handleOnClickClose}/>
             </header>
             <ol className="song-list">
                 {songMenu.data && songMenu.data.map((s, index) => {

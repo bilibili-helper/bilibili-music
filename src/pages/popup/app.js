@@ -10,6 +10,7 @@ import {SongList} from 'Modules/player/UI/SongList';
 import React, {useEffect, useState} from 'react';
 import {Player} from 'Modules/player/UI/Player';
 import {Viewer} from 'Modules/mediaViewer/UI/Viewer';
+import {VideoSearcher} from 'Modules/home/UI/VideoSearcher';
 import styled from 'styled-components';
 
 const Wrapper = styled.div.attrs({id: 'home'})`
@@ -53,6 +54,10 @@ export const App = function() {
         });
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const {command = '', from = ''} = message;
+            if (command === 'collectedSongSuccessfully' || command === 'cancelCollectSongSuccessfully') {
+                const {song} = message;
+                setSong(song);
+            }
             if (from !== 'playerBackground') { return true; }
             if (command === 'ended') {
                 return true;
@@ -67,9 +72,6 @@ export const App = function() {
             } else if ((command === 'addSongSuccessfully' || command === 'deleteSongSuccessfully' || command === 'modifySongListSuccessfully') && message.songList) {
                 setSong(message.song);
                 setSongList(message.songList);
-            } else if (command === 'collectedSongSuccessfully' || command === 'cancelCollectSongSuccessfully') {
-                const {song} = message;
-                setSong(song);
             }
             sendResponse();
             return true;
@@ -78,6 +80,7 @@ export const App = function() {
         chrome.runtime.sendMessage({command: 'getSongList', from: 'player'}, ({song, songList}) => {
             setSongList(songList);
             setSong(song);
+            console.info(song);
         });
     }, []);
 
@@ -87,6 +90,7 @@ export const App = function() {
         <React.Fragment>
             <Wrapper>
                 <Banner data={banner}/>
+                <VideoSearcher/>
                 <SongListSection
                     simple
                     topic="热门榜单"
@@ -108,7 +112,7 @@ export const App = function() {
                     userMenu={userMenu}
                 />
                 <SongListSection
-                    topic="用户歌单"
+                    topic="收藏列表"
                     setSongMenuShow={setSongMenuShow}
                     menuList={userMenu}
                     userMenu={userMenu}

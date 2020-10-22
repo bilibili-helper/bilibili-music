@@ -203,6 +203,11 @@ const VolumeBar = styled.input.attrs({
   }
   
   &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 16px;
+    width: 16px;
+    background-color: #FB7299;
+    border-radius: 50%;
     cursor: pointer;
   }
   
@@ -233,6 +238,52 @@ const ListBtn = styled(PlayerBtn).attrs({
   padding: 4px;
 `;
 
+const ProgressBox = styled.div`
+  position: absolute;
+  top: -2px;
+  left: 70px;
+  width: 250px;
+  height: 2px;
+  
+  .progress-current-bar {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 0%;
+    height: 2px;
+    background-color: #FB7299;
+  }
+`;
+
+const ProgressBar = styled.input.attrs({
+    className: 'progress-bar',
+})`
+  -webkit-appearance: none;
+  position: absolute;
+  top: -2px;
+  left: 0px;
+  width: 254px;
+  height: 2px;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+  
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 2px;
+    width: 0px;
+    background-color: transparent;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  
+  &::-webkit-slider-runnable-track {
+    padding: 2px;
+    border-radius: 30px; 
+    background: transparent;
+    //box-shadow: rgba(0, 0, 0, 0.5) 0px 2px 2px;
+  }
+`;
 
 const getPlayModeStr = (mode) => {
     switch (mode) {
@@ -247,12 +298,18 @@ const getPlayModeStr = (mode) => {
     }
 };
 
+let progressIntervalCounter = 0;
+
 export const Player = function({song, songList, showSongList, setShowSongList}) {
     const volumeRef = useRef(null);
+    const progressRef = useRef(null);
     const [muted, setMuted] = useState(false);
     const [showVolume, setShowVolume] = useState(false);
     const [volume, setVolume] = useState(1);
+    const [progress, setProgress] = useState(0);
     const [playMode, setPlayMode] = useState(0);
+
+    const [listenningProgress, setListenning] = useState(false);
 
     // 播放/暂停按钮点击事件
     const handleOnClickPlayBtn = useCallback(() => {
@@ -326,6 +383,30 @@ export const Player = function({song, songList, showSongList, setShowSongList}) 
         chrome.runtime.sendMessage({command: 'hideViewer', from: 'player'});
     }, [showSongList]);
 
+    const handleOnProgressChange = useCallback(throttle(() => {
+        chrome.runtime.sendMessage({
+            command: 'setProgress',
+            from: 'player',
+            progress: progressRef.current.value,
+        });
+        setProgress(progressRef.current.value);
+    }, 15), []);
+
+    useEffect(() => {
+        if (song && song.playing && !listenningProgress) {
+            setListenning(true);
+            progressIntervalCounter = setInterval(() => {
+                chrome.runtime.sendMessage({command: 'getProgress', from: 'player'}, (progress) => {
+                    setProgress(progress);
+                    //progressRef.current.value = progress;
+                });
+            }, 1000);
+        } else if (!song || !song.playing) {
+            clearInterval(progressIntervalCounter);
+            setListenning(false);
+        }
+    }, [song]);
+
     useEffect(() => {
         document.addEventListener('click', function(e) {
             const targetClassList = e.target.classList;
@@ -337,8 +418,10 @@ export const Player = function({song, songList, showSongList, setShowSongList}) 
             const {command = '', from = ''} = message;
             if (from !== 'playerBackground') return true;
 
-            if (command === 'volumechange') {
+            if (command === 'volumeChange') {
                 setVolume(message.volume);
+            } else if (command === 'progressChange') {
+                setProgress(message.progress);
             }
             sendResponse();
             return true;
@@ -346,6 +429,8 @@ export const Player = function({song, songList, showSongList, setShowSongList}) 
         // 初始化音量
         chrome.runtime.sendMessage({command: 'getConfig', from: 'player'}, (config) => {
             volumeRef.current.value = config.volume;
+            progressRef.current.value = config.progress;
+            setProgress(config.progress);
             setPlayMode(config.playMode);
         });
     }, []);
@@ -371,6 +456,18 @@ export const Player = function({song, songList, showSongList, setShowSongList}) 
                     disabled={songList.length <= 1}
                     onClick={handleOnClickNextBtn}
                 />
+                <ProgressBox>
+                    <div className="progress-current-bar" style={{width: progress * 100 + '%'}}/>
+                    <ProgressBar
+                        ref={progressRef}
+                        type="range"
+                        max={1}
+                        min={0}
+                        step={0.001}
+                        defaultValue={progress}
+                        onChange={handleOnProgressChange}
+                    />
+                </ProgressBox>
                 <VolumeBox>
                     <VolumeBtn
                         icon={muted ? 'volume-muted' : 'volume'}

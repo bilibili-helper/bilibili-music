@@ -33,14 +33,29 @@ export class MediaDetail {
     addListener = () => {
         chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
             const {command = ''} = message;
-            if (command === 'viewMedia' && message.sid) { // 查看媒体详情
-                this.getMediaDetail(message.sid).then((song) => {
-                    chrome.runtime.sendMessage({
-                        command: 'setSongViewSuccessfully',
-                        from: 'mediaDetailBackground',
-                        song,
+            if (command === 'viewMedia') { // 查看媒体详情
+                if (!message.type) { // 默认当音频处理
+                    message.type = 'audio';
+                }
+                console.log(message);
+                if (message.sid && message.type === 'audio') {
+                    this.getAudioMediaDetail(message.sid).then((song) => {
+                        console.info(song);
+                        chrome.runtime.sendMessage({
+                            command: 'setSongViewSuccessfully',
+                            from: 'mediaDetailBackground',
+                            song,
+                        });
                     });
-                });
+                } else if (message.sid && message.type === 'video') {
+                    this.getVideoMediaDetail(message.song).then((song) => {
+                        chrome.runtime.sendMessage({
+                            command: 'setSongViewSuccessfully',
+                            from: 'mediaDetailBackground',
+                            song,
+                        });
+                    });
+                }
             } else if (command === 'hideViewer') {
                 chrome.runtime.sendMessage({command: 'hideViewer', from: 'mediaDetailBackground'});
             } else if (command === 'collectSong' && message.sid && message.cid !== undefined) {
@@ -62,7 +77,7 @@ export class MediaDetail {
                     .then(({songMenu, mediaList}) => {
                         const song = window.player.controller.map.get(message.sid);
                         if (song) {
-                            if (!!message.cid) song.collectIds.push(message.cid);
+                            if (message.cid) song.collectIds.push(message.cid);
                             else song.collectIds = [];
                             chrome.runtime.sendMessage({
                                 command: 'collectedSongSuccessfully',
@@ -103,7 +118,7 @@ export class MediaDetail {
     createExpiredTime = (duration = 30) => Date.now() + this.cacheDuration * duration;
 
     // 获取媒体数据，缓存优先，缓存30分钟
-    getMediaDetail = (sid) => {
+    getAudioMediaDetail = (sid) => {
         if (!sid) {
             return Promise.reject(`error sid: ${sid}`);
         }
@@ -118,7 +133,6 @@ export class MediaDetail {
             this.getTags(sid),
             this.getMembers(sid),
             this.getCollectStatus(sid),
-
         ]).then(([basic, tags, members]) => {
             return this.getLyric(basic.lyric).then((lrcData) => {
                 return this.cache[sid] = {
@@ -126,11 +140,48 @@ export class MediaDetail {
                     lrcData,
                     tags,
                     members,
+                    type: 'audio',
                     expiredTime: Date.now() + this.createExpiredTime(),
                 };
             });
         });
     };
+
+    getVideoMediaDetail = (song) => {
+        return Promise.all([
+            this.getVideoStat(song.aid),
+            this.getVideoTags(song.aid),
+        ]).then(([stat, tags]) => {
+            return {
+                ...song,
+                ...stat,
+                tags,
+                type: 'video',
+            };
+        });
+    };
+
+    getVideoStat = (aid) => fetchJSON(`${API.videoStat}?aid=${aid}`).then(({coin, favorite, reply, view, share, like, danmaku}) => {
+        return {
+            coin_num: coin,
+            statistic: {
+                collect: favorite,
+                comment: reply,
+                play: view,
+                share,
+                like,
+                danmu: danmaku,
+            },
+        };
+    });
+
+    getVideoTags = (aid) => fetchJSON(`${API.videoTag}?aid=${aid}`).then(tags => {
+        return tags.map(({tag_name, tag_id, tag_type}) => ({
+            info: tag_name,
+            key: tag_id,
+            type: tag_type,
+        }));
+    });
 
     // 获取媒体基础信息
     getBasicData = (sid) => fetchJSON(`${API.basic}?sid=${sid}`);
@@ -165,8 +216,13 @@ export class MediaDetail {
     getLyric = (url) => {
         if (!url) return Promise.resolve('');
         return fetch(url).then(res => res.text()).then(res => {
-            const lrcArray = res.split('\n').map((s) => s.split(/\[(\d+?):(\d+?).(\d+?)\]/).slice(1));
-            return lrcArray;
+            // 有时间轴时按去掉时间线数据
+            if (res.match(/\[(\d+?):(\d+?).(\d+?)\]/)) {
+                return res.split('\n').map((s) => s.split(/\[(\d+?):(\d+?).(\d+?)\]/).slice(1));
+            } else {
+                return res.split('\n').filter(Boolean).map(str => ([0, 0, 0, str]));
+            }
+
         });
     };
 

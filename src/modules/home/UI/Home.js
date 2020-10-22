@@ -13,7 +13,4 @@ import {SongMenu} from 'Modules/home/UI/SongMenu';
 
 export const Home = function({banner = [], recommendList = [], userMenu = [], userCollectedMenu = [], allRank = [], hotRank = [], showSongMenu, setSongMenuShow}) {
 
-    return (
-
-    );
 };
