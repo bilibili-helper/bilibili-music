@@ -4,7 +4,7 @@
 [![Chrome Webstore Downloads](https://img.shields.io/chrome-web-store/d/kpbnombpnpcffllnianjibmpadjolanh.svg)](https://chrome.google.com/webstore/detail/kpbnombpnpcffllnianjibmpadjolanh)
 [![Website](https://img.shields.io/website-up-down-green-red/http/bilibili-helper.github.io.svg)](https://bilibili-helper.github.io/)
 
-Copyright (c) 2019 [Zac Yu](mailto:me@zacyu.com), Google LLC, [Drowsy Flesh](mailto:jjj201200@gmail.com)
+Copyright (c) 2020 [Drowsy Flesh](mailto:jjj201200@gmail.com)
 
 An auxiliary extension for Bilibili (bilibili.com) which allows users to listen music without open website.
 
